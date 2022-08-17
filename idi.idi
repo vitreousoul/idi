@@ -1,0 +1,10 @@
+LowerCase = a ... z;
+UpperCase = A ... Z;
+Character = \UpperCase | \LowerCase;
+Range = \Character ... \Character;
+Literal = \Character | \Range;
+Reference = \\ \Variable;
+Value = \Reference | \Literal;
+Variable = \UpperCase \Character*;
+Binding = \Variable \= \Value+ \;;
+Module = \Binding*;
