@@ -51,7 +51,14 @@ main()
     int Result = 0;
     buffer *Buffer = ReadFileIntoBuffer("idi.idi");
 
-    WriteBufferToFile(Buffer, "test.idi");
+    token_list *ParseResult = Parse(*Buffer);
+
+    while(ParseResult != NULL)
+    {
+        printf("Token type: %d\n", ParseResult->Type);
+        ParseResult = ParseResult->Next;
+    }
+    /* WriteBufferToFile(Buffer, "test.idi"); */
 
     Result = Buffer->Size;
 
