@@ -10,10 +10,10 @@ typedef uint32_t u32;
 typedef uint32_t b32;
 typedef size_t size;
 
-struct buffer {
-    size Size;
-    u8 *Data;
+enum b32 {
+False = (u32)0,
+True = (u32)1,
 };
-typedef struct buffer buffer;
+typedef enum bool bool;
 
 #endif // TYPES_H_

@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 DEBUG=0
-SOURCE_FILES="src/idi.c src/parser.c"
+SOURCE_FILES="src/idi.c src/parser.c src/buffer.c"
 
 if [ $DEBUG -eq 0 ]; then
     echo "Optimized build";

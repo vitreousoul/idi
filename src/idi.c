@@ -12,17 +12,6 @@ GetFileSize(FILE *File)
 }
 
 static buffer *
-CreateBuffer(size Size)
-{
-    buffer *Result = malloc(sizeof(buffer));
-    Result->Size = Size;
-    u8 *Data = malloc(Size * sizeof(u8));
-    Result->Data = Data;
-
-    return Result;
-}
-
-static buffer *
 ReadFileIntoBuffer(const char *FilePath)
 {
     FILE *File = fopen(FilePath, "rb");
@@ -55,7 +44,10 @@ main()
 
     while(ParseResult != NULL)
     {
-        printf("Token type: %d\n", ParseResult->Type);
+        printf("Token: %d\n", ParseResult->Type);
+        printf("    ");
+        DebugPrintBuffer(ParseResult->Text);
+        printf("\n");
         ParseResult = ParseResult->Next;
     }
     /* WriteBufferToFile(Buffer, "test.idi"); */
@@ -64,6 +56,7 @@ main()
 
     free(Buffer->Data);
     free(Buffer);
+    // TODO: free token_list!!!!
 
     return Result;
 }
