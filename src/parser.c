@@ -2,23 +2,24 @@
 
 #include "parser.h"
 
-enum parser_state {
-ParserStateTopLevel,
-ParserStateBind,
-ParserStateBindName,
-ParserStateBindBlock,
-ParserStateMatch,
-ParserStateEnd
-};
-typedef enum parser_state parser_state;
-
 #define GetParserState(Parser) (Parser.State[Parser.StatePosition])
 #define SetParserState(Parser, NewState) (Parser.State[Parser.StatePosition] = NewState)
+
+#define ArrayItemSize(Array) (sizeof(Array[0]))
+#define ArrayCount(Array) (sizeof(Array) / ArrayItemSize(Array))
 
 #define CharIsUpperCase(Char) (Char >= 'A' && Char <= 'Z')
 #define CharIsLowerCase(Char) (Char >= 'a' && Char <= 'z')
 #define CharIsDigit(Char) (Char >= '0' && Char <= '9')
 #define CharIsAlphaNum(Char) (CharIsUpperCase(Char) || CharIsLowerCase(Char) || CharIsDigit(Char))
+#define CharIsSpace(Char) ((Char == ' ') || (Char == '\n') || (Char == '\r') || (Char == '\t'))
+
+void
+Error(const char *Message)
+{
+    printf("Error: %s\n", Message);
+    exit(1);
+}
 
 static parser
 CreateParser()
@@ -63,7 +64,7 @@ MatchText(buffer Buffer, parser *Parser, const char *Text)
             break;
         }
         else if((Offset >= Buffer.Size) ||
-                 (Buffer.Data[Parser->At + Offset] != Text[Offset]))
+                (Buffer.Data[Parser->At + Offset] != Text[Offset]))
         {
             Result = 0;
             break;
@@ -85,7 +86,7 @@ MatchText(buffer Buffer, parser *Parser, const char *Text)
 void
 SkipSpace(buffer Buffer, parser *Parser)
 {
-    while(Parser->At >= Buffer.Size || Buffer.Data[Parser->At] == ' ')
+    while(Parser->At >= Buffer.Size || CharIsSpace(Buffer.Data[Parser->At]))
     {
         Parser->At++;
     }
@@ -136,6 +137,38 @@ ParseTitleString(buffer Buffer, parser *Parser)
     {
         Parser->At += Offset;
         Result.End = Result.Begin + Offset;
+    }
+
+    return Result;
+}
+
+void
+PushParserState(parser *Parser, parser_state ParserState)
+{
+    if(Parser->StatePosition >= ArrayCount(Parser->State))
+    {
+        Error("Calling PushParserState with a full state stack");
+    }
+    else
+    {
+        Parser->StatePosition++;
+        Parser->State[Parser->StatePosition] = ParserState;
+    }
+}
+
+parser_state
+PopParserState(parser *Parser)
+{
+    parser_state Result = ParserStateEnd;
+
+    if(Parser->StatePosition < 0)
+    {
+        Error("PopParserState called with empty stack");
+    }
+    else
+    {
+        Result = Parser->State[Parser->StatePosition];
+        Parser->StatePosition--;
     }
 
     return Result;
@@ -192,7 +225,7 @@ Parse(buffer Buffer)
                     {
                         CurrentToken = PushToken(CurrentToken,
                                                  TokenTypeKeywordBind,
-                                                 BufferFromNullTerminatedString(""));
+                                                 BufferFromNullTerminatedString("bind"));
                         SkipSpace(Buffer, &Parser);
                         SetParserState(Parser, ParserStateBindName);
                     }
@@ -204,19 +237,42 @@ Parse(buffer Buffer)
                         SetParserState(Parser, ParserStateEnd);
                     }
                 } break;
-                case ParserStateBindName:
+                case ParserStateVariable:
                 {
                     token_range TitleStringRange = ParseTitleString(Buffer, &Parser);
-                    /* printf("TitleStringRange %lu %lu\n", TitleStringRange.Begin, TitleStringRange.End); */
+                    size RangeSize = TitleStringRange.End - TitleStringRange.Begin;
 
-                    if((TitleStringRange.End - TitleStringRange.Begin) > 0)
+                    if(RangeSize > 0)
                     {
                         buffer *SubBuffer = GetBufferSubRegion(&Buffer, TitleStringRange.Begin, TitleStringRange.End);
+
                         CurrentToken = PushToken(CurrentToken,
                                                  TokenTypeVariable,
                                                  SubBuffer);
                         SkipSpace(Buffer, &Parser);
-                        SetParserState(Parser, ParserStateBindBlock);
+                        PopParserState(&Parser);
+                    }
+                    else
+                    {
+                        CurrentToken = PushToken(CurrentToken,
+                                                 TokenTypeError,
+                                                 BufferFromNullTerminatedString("Error parsing variable"));
+                        SetParserState(Parser, ParserStateEnd);
+                    }
+                } break;
+                case ParserStateBindName:
+                {
+                    token_range TitleStringRange = ParseTitleString(Buffer, &Parser);
+
+                    if((TitleStringRange.End - TitleStringRange.Begin) > 0)
+                    {
+                        buffer *SubBuffer = GetBufferSubRegion(&Buffer, TitleStringRange.Begin, TitleStringRange.End);
+
+                        CurrentToken = PushToken(CurrentToken,
+                                                 TokenTypeVariable,
+                                                 SubBuffer);
+                        SkipSpace(Buffer, &Parser);
+                        SetParserState(Parser, ParserStateBindBlockOpen);
                     }
                     else
                     {
@@ -226,9 +282,68 @@ Parse(buffer Buffer)
                         SetParserState(Parser, ParserStateEnd);
                     }
                 } break;
-                case ParserStateBindBlock:
+                case ParserStateBindBlockOpen:
+                {
+                    if(Buffer.Data[Parser.At] == '{')
+                    {
+                        Parser.At++;
+                        SkipSpace(Buffer, &Parser);
+                         CurrentToken = PushToken(CurrentToken,
+                                                  TokenTypeCurlyOpen,
+                                                  BufferFromNullTerminatedString("{"));
+                        SetParserState(Parser, ParserStateBindStatements);
+                    }
+                    else
+                    {
+                        CurrentToken = PushToken(CurrentToken,
+                                                 TokenTypeError,
+                                                 BufferFromNullTerminatedString("Expected block open: {"));
+                        SetParserState(Parser, ParserStateEnd);
+                    }
+                } break;
+                case ParserStateBindStatements:
+                {
+                    if(Buffer.Data[Parser.At] == '}')
+                    {
+                        SetParserState(Parser, ParserStateBindBlockClose);
+                    }
+                    else
+                    {
+                        SetParserState(Parser, ParserStateBindStatementOperator);
+                        PushParserState(&Parser, ParserStateVariable);
+                    }
+                } break;
+                case ParserStateBindStatementOperator:
+                {
+                    SkipSpace(Buffer, &Parser);
+                    b32 MatchTextResult = MatchText(Buffer, &Parser, ":");
+
+                    if (MatchTextResult)
+                    {
+                        CurrentToken = PushToken(CurrentToken,
+                                                 TokenTypeOperatorEqual,
+                                                 BufferFromNullTerminatedString(":"));
+                        SkipSpace(Buffer, &Parser);
+                        SetParserState(Parser, ParserStateBindExpression);
+                    }
+                    else
+                    {
+                        CurrentToken = PushToken(CurrentToken,
+                                                 TokenTypeError,
+                                                 BufferFromNullTerminatedString("Expected operator: :"));
+                        SetParserState(Parser, ParserStateEnd);
+                    }
+                } break;
+                case ParserStateBindExpression:
                 {
                     SetParserState(Parser, ParserStateEnd);
+                } break;
+                case ParserStateBindBlockClose:
+                {
+                    CurrentToken = PushToken(CurrentToken,
+                                             TokenTypeCurlyClose,
+                                             BufferFromNullTerminatedString("}"));
+                    SetParserState(Parser, ParserStateTopLevel);
                 } break;
                 case ParserStateEnd:
                 {

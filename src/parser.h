@@ -6,9 +6,25 @@
 
 static const u32 MAX_STATE_ARRAY_COUNT = 128;
 
+enum parser_state {
+ParserStateTopLevel,
+ParserStateBind,
+ParserStateBindName,
+ParserStateVariable,
+ParserStateBindBlockOpen,
+ParserStateBindBlockClose,
+ParserStateBindStatements,
+ParserStateBindStatementOperator,
+ParserStateBindExpression,
+ParserStateMatch,
+ParserStateEnd,
+};
+typedef enum parser_state parser_state;
+
 enum token_type {
 TokenTypeStreamBegin,
 TokenTypeKeywordBind,
+TokenTypeOperatorEqual,
 TokenTypeVariable,
 TokenTypeCurlyOpen,
 TokenTypeCurlyClose,
