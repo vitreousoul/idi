@@ -6,7 +6,8 @@
 
 static const u32 MAX_STATE_ARRAY_COUNT = 128;
 
-enum parser_state {
+typedef enum parser_state
+{
 ParserStateTopLevel,
 ParserStateBind,
 ParserStateBindName,
@@ -18,10 +19,10 @@ ParserStateBindStatementOperator,
 ParserStateBindExpression,
 ParserStateMatch,
 ParserStateEnd,
-};
-typedef enum parser_state parser_state;
+} parser_state;
 
-enum token_type {
+typedef enum token_type
+{
 TokenTypeStreamBegin,
 TokenTypeKeywordBind,
 TokenTypeOperatorEqual,
@@ -30,28 +31,27 @@ TokenTypeCurlyOpen,
 TokenTypeCurlyClose,
 TokenTypeStreamEnd,
 TokenTypeError,
-};
-typedef enum token_type token_type;
+} token_type;
 
-struct parser {
+typedef struct parser
+{
     size At;
     u32 State[MAX_STATE_ARRAY_COUNT];
     u32 StatePosition;
-};
-typedef struct parser parser;
+} parser;
 
-struct token_list {
+typedef struct token_list
+{
     token_type Type;
     buffer *Text;
     struct token_list *Next;
-};
-typedef struct token_list token_list;
+} token_list;
 
-struct token_range {
+typedef struct token_range
+{
     size Begin;
     size End;
-};
-typedef struct token_range token_range;
+} token_range;
 
 token_list *Parse(buffer Buffer);
 
