@@ -288,9 +288,9 @@ Parse(buffer Buffer)
                     {
                         Parser.At++;
                         SkipSpace(Buffer, &Parser);
-                         CurrentToken = PushToken(CurrentToken,
-                                                  TokenTypeCurlyOpen,
-                                                  BufferFromNullTerminatedString("{"));
+                        CurrentToken = PushToken(CurrentToken,
+                                                 TokenTypeCurlyOpen,
+                                                 BufferFromNullTerminatedString("{"));
                         SetParserState(Parser, ParserStateBindStatements);
                     }
                     else
