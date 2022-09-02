@@ -40,23 +40,11 @@ main()
     int Result = 0;
     buffer *Buffer = ReadFileIntoBuffer("idi.idi");
 
-    token_list *ParseResult = Parse(*Buffer);
-
-    while(ParseResult != NULL)
-    {
-        printf("Token: %d\n", ParseResult->Type);
-        printf("    ");
-        DebugPrintBuffer(ParseResult->Text);
-        printf("\n");
-        ParseResult = ParseResult->Next;
-    }
-    /* WriteBufferToFile(Buffer, "test.idi"); */
-
-    Result = Buffer->Size;
+    Result = (int)ParseBuffer(Buffer);
+    printf("Parse Result: %s\n", DisplayParseTreeState(Result));
 
     free(Buffer->Data);
     free(Buffer);
-    // TODO: free token_list!!!!
 
     return Result;
 }

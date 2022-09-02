@@ -2,9 +2,6 @@
 
 #include "parser.h"
 
-#define GetParserState(Parser) (Parser.State[Parser.StatePosition])
-#define SetParserState(Parser, NewState) (Parser.State[Parser.StatePosition] = NewState)
-
 #define ArrayItemSize(Array) (sizeof(Array[0]))
 #define ArrayCount(Array) (sizeof(Array) / ArrayItemSize(Array))
 
@@ -21,339 +18,131 @@ Error(const char *Message)
     exit(1);
 }
 
-static parser
-CreateParser()
+static text_match_node *
+CreateTextMatchNode(const char *Text)
 {
-    parser Result = {};
-    Result.At = 0;
-    Result.State[0] = ParserStateTopLevel;
-    Result.StatePosition = 0;
+    buffer *BufferText = BufferFromNullTerminatedString(Text);
+    text_match_node *Result = malloc(sizeof(text_match_node));
+    Result->Text = BufferText;
+    Result->Index = 0;
 
     return Result;
 }
 
-static token_list *
-CreateToken(u32 Type, buffer *Buffer)
+static parse_tree
+CreateTextMatchParseTree(const char *Text)
 {
-    token_list *Result = (token_list *)malloc(sizeof(token_list));
-    Result->Type = Type;
-    Result->Text = Buffer;
-    Result->Next = NULL;
+    parse_tree Result;
+    Result.Type = ParseTreeTypeTextMatch;
+    Result.State = ParseTreeStateRunning;
+    Result.Value.TextMatch = CreateTextMatchNode(Text);
 
     return Result;
 }
 
-static token_list *
-PushToken(token_list *TokenList, token_type Type, buffer *Text)
+static parse_tree_state
+GetParseTreeState(parse_tree ParseTree)
 {
-    TokenList->Next = CreateToken(Type, Text);
+    parse_tree_state Result = ParseTree.State;
 
-    return TokenList->Next;
+    return Result;
 }
 
-static b32
-MatchText(buffer Buffer, parser *Parser, const char *Text)
+static parse_tree_type
+GetParseTreeType(parse_tree ParseTree)
 {
-    b32 Result = 1;
-    size Offset = 0;
+    parse_tree_type Result = ParseTree.Type;
 
-    for(;;)
-    {
-        if(Text[Offset] == '\0')
-        {
-            break;
-        }
-        else if((Offset >= Buffer.Size) ||
-                (Buffer.Data[Parser->At + Offset] != Text[Offset]))
-        {
-            Result = 0;
-            break;
-        }
-        else
-        {
-            Offset++;
-        }
-    }
+    return Result;
+}
 
-    if(Result)
+static void
+SetParseTreeState(parse_tree *ParseTree, parse_tree_state State)
+{
+    ParseTree->State = State;
+}
+
+static u8
+GetTextMatchCharacter(text_match_node *TextMatchNode)
+{
+    u8 Result = '\0';
+
+    if (TextMatchNode->Index < TextMatchNode->Text->Size)
     {
-        Parser->At += Offset;
+        Result = TextMatchNode->Text->Data[TextMatchNode->Index];
     }
 
     return Result;
 }
 
-void
-SkipSpace(buffer Buffer, parser *Parser)
+const char *
+DisplayParseTreeState(parse_tree_state ParseTreeState)
 {
-    while(Parser->At >= Buffer.Size || CharIsSpace(Buffer.Data[Parser->At]))
+    switch(ParseTreeState)
     {
-        Parser->At++;
+        case ParseTreeStateRunning: return "ParseTreeStateRunning";
+        case ParseTreeStateSuccess: return "ParseTreeStateSuccess";
+        case ParseTreeStateError: return "ParseTreeStateError";
     }
 }
 
-token_range
-CreateTokenRange(size Begin, size End)
+parse_tree_state
+ParseBuffer(buffer *Buffer)
 {
-    token_range Result;
-    Result.Begin = Begin;
-    Result.End = End;
+    // TODO: free stuff we malloced in here >:(  !!!!!
+    const char *Text = "bin";
+    parse_tree ParseTree = CreateTextMatchParseTree(Text);
 
-    return Result;
-}
-
-token_range
-ParseTitleString(buffer Buffer, parser *Parser)
-{
-    token_range Result = CreateTokenRange(Parser->At, Parser->At);
-    b32 Success = True;
-    size Offset = 0;
-
-    for(;;)
-    {
-        if(Offset >= Buffer.Size)
-        {
-            break;
-        }
-        else
-        {
-            u8 Char = Buffer.Data[Parser->At + Offset];
-
-            if(Offset == 0 && !CharIsUpperCase(Char))
-            {
-                Success = False;
-                break;
-            }
-            else if(!CharIsAlphaNum(Char))
-            {
-                break;
-            }
-
-            Offset++;
-        }
-    }
-
-    if(Success == True)
-    {
-        Parser->At += Offset;
-        Result.End = Result.Begin + Offset;
-    }
-
-    return Result;
-}
-
-void
-PushParserState(parser *Parser, parser_state ParserState)
-{
-    if(Parser->StatePosition >= ArrayCount(Parser->State))
-    {
-        Error("Calling PushParserState with a full state stack");
-    }
-    else
-    {
-        Parser->StatePosition++;
-        Parser->State[Parser->StatePosition] = ParserState;
-    }
-}
-
-parser_state
-PopParserState(parser *Parser)
-{
-    parser_state Result = ParserStateEnd;
-
-    if(Parser->StatePosition < 0)
-    {
-        Error("PopParserState called with empty stack");
-    }
-    else
-    {
-        Result = Parser->State[Parser->StatePosition];
-        Parser->StatePosition--;
-    }
-
-    return Result;
-}
-
-token_list *
-Parse(buffer Buffer)
-{
-    token_list *Result = CreateToken(TokenTypeStreamBegin,
-                                     BufferFromNullTerminatedString(""));
-    token_list *CurrentToken = Result;
-    parser Parser = CreateParser();
-    const u32 MaxIterCount = 9999;
+    const u32 MaxIterCount = 9;
     u32 Iter = 0;
+    size BufferIndex = 0;
 
-    while(GetParserState(Parser) != ParserStateEnd && (Iter++ < MaxIterCount))
+    printf("begin parse loop\n");
+    while(GetParseTreeState(ParseTree) == ParseTreeStateRunning && (Iter++ < MaxIterCount))
     {
-        if(Parser.At >= Buffer.Size)
+        if(BufferIndex >= Buffer->Size)
         {
-            SetParserState(Parser, ParserStateEnd);
+            printf("End of buffer\n");
+            // TODO: only set to error if state is _not_ success
+            SetParseTreeState(&ParseTree, ParseTreeStateError);
+        }
+        else if(Iter == MaxIterCount)
+        {
+            printf("\nMax iterations\n");
+            SetParseTreeState(&ParseTree, ParseTreeStateError);
         }
         else
         {
-            u8 CurrentChar = Buffer.Data[Parser.At];
+            u8 CurrentChar = Buffer->Data[BufferIndex];
 
-            switch(GetParserState(Parser))
+            switch(GetParseTreeType(ParseTree))
             {
-                case ParserStateTopLevel:
+                case ParseTreeTypeTextMatch:
                 {
-                    switch(CurrentChar)
-                    {
-                        case 'b':
-                        {
-                            SetParserState(Parser, ParserStateBind);
-                        } break;
-                        case 'm':
-                        {
-                            SetParserState(Parser, ParserStateMatch);
-                        } break;
-                        default:
-                        {
-                            CurrentToken = PushToken(CurrentToken,
-                                                     TokenTypeError,
-                                                     BufferFromNullTerminatedString("Expected top-level keyword: bind, match"));
-                            SetParserState(Parser, ParserStateEnd);
-                        }
-                    }
-                } break;
-                case ParserStateBind:
-                {
-                    b32 MatchTextResult = MatchText(Buffer, &Parser, "bind");
+                    u8 TextMatchChar = GetTextMatchCharacter(ParseTree.Value.TextMatch);
 
-                    if(MatchTextResult)
+                    if(TextMatchChar == '\0')
                     {
-                        CurrentToken = PushToken(CurrentToken,
-                                                 TokenTypeKeywordBind,
-                                                 BufferFromNullTerminatedString("bind"));
-                        SkipSpace(Buffer, &Parser);
-                        SetParserState(Parser, ParserStateBindName);
+                        SetParseTreeState(&ParseTree, ParseTreeStateSuccess);
+                    }
+                    else if(CurrentChar == TextMatchChar)
+                    {
+                        ++ParseTree.Value.TextMatch->Index;
+                        ++BufferIndex;
                     }
                     else
                     {
-                        CurrentToken = PushToken(CurrentToken,
-                                                 TokenTypeError,
-                                                 BufferFromNullTerminatedString("Expected keyword: bind"));
-                        SetParserState(Parser, ParserStateEnd);
+                        SetParseTreeState(&ParseTree, ParseTreeStateError);
                     }
                 } break;
-                case ParserStateVariable:
+                default:
                 {
-                    token_range TitleStringRange = ParseTitleString(Buffer, &Parser);
-                    size RangeSize = TitleStringRange.End - TitleStringRange.Begin;
-
-                    if(RangeSize > 0)
-                    {
-                        buffer *SubBuffer = GetBufferSubRegion(&Buffer, TitleStringRange.Begin, TitleStringRange.End);
-
-                        CurrentToken = PushToken(CurrentToken,
-                                                 TokenTypeVariable,
-                                                 SubBuffer);
-                        SkipSpace(Buffer, &Parser);
-                        PopParserState(&Parser);
-                    }
-                    else
-                    {
-                        CurrentToken = PushToken(CurrentToken,
-                                                 TokenTypeError,
-                                                 BufferFromNullTerminatedString("Error parsing variable"));
-                        SetParserState(Parser, ParserStateEnd);
-                    }
-                } break;
-                case ParserStateBindName:
-                {
-                    token_range TitleStringRange = ParseTitleString(Buffer, &Parser);
-
-                    if((TitleStringRange.End - TitleStringRange.Begin) > 0)
-                    {
-                        buffer *SubBuffer = GetBufferSubRegion(&Buffer, TitleStringRange.Begin, TitleStringRange.End);
-
-                        CurrentToken = PushToken(CurrentToken,
-                                                 TokenTypeVariable,
-                                                 SubBuffer);
-                        SkipSpace(Buffer, &Parser);
-                        SetParserState(Parser, ParserStateBindBlockOpen);
-                    }
-                    else
-                    {
-                        CurrentToken = PushToken(CurrentToken,
-                                                 TokenTypeError,
-                                                 BufferFromNullTerminatedString("Error parsing bind name"));
-                        SetParserState(Parser, ParserStateEnd);
-                    }
-                } break;
-                case ParserStateBindBlockOpen:
-                {
-                    if(Buffer.Data[Parser.At] == '{')
-                    {
-                        Parser.At++;
-                        SkipSpace(Buffer, &Parser);
-                        CurrentToken = PushToken(CurrentToken,
-                                                 TokenTypeCurlyOpen,
-                                                 BufferFromNullTerminatedString("{"));
-                        SetParserState(Parser, ParserStateBindStatements);
-                    }
-                    else
-                    {
-                        CurrentToken = PushToken(CurrentToken,
-                                                 TokenTypeError,
-                                                 BufferFromNullTerminatedString("Expected block open: {"));
-                        SetParserState(Parser, ParserStateEnd);
-                    }
-                } break;
-                case ParserStateBindStatements:
-                {
-                    if(Buffer.Data[Parser.At] == '}')
-                    {
-                        SetParserState(Parser, ParserStateBindBlockClose);
-                    }
-                    else
-                    {
-                        SetParserState(Parser, ParserStateBindStatementOperator);
-                        PushParserState(&Parser, ParserStateVariable);
-                    }
-                } break;
-                case ParserStateBindStatementOperator:
-                {
-                    SkipSpace(Buffer, &Parser);
-                    b32 MatchTextResult = MatchText(Buffer, &Parser, ":");
-
-                    if (MatchTextResult)
-                    {
-                        CurrentToken = PushToken(CurrentToken,
-                                                 TokenTypeOperatorEqual,
-                                                 BufferFromNullTerminatedString(":"));
-                        SkipSpace(Buffer, &Parser);
-                        SetParserState(Parser, ParserStateBindExpression);
-                    }
-                    else
-                    {
-                        CurrentToken = PushToken(CurrentToken,
-                                                 TokenTypeError,
-                                                 BufferFromNullTerminatedString("Expected operator: :"));
-                        SetParserState(Parser, ParserStateEnd);
-                    }
-                } break;
-                case ParserStateBindExpression:
-                {
-                    SetParserState(Parser, ParserStateEnd);
-                } break;
-                case ParserStateBindBlockClose:
-                {
-                    CurrentToken = PushToken(CurrentToken,
-                                             TokenTypeCurlyClose,
-                                             BufferFromNullTerminatedString("}"));
-                    SetParserState(Parser, ParserStateTopLevel);
-                } break;
-                case ParserStateEnd:
-                {
-                    CurrentToken = PushToken(CurrentToken,
-                                             TokenTypeStreamEnd,
-                                             BufferFromNullTerminatedString(""));
+                    printf("Error: ParseTree state dafault case error\n");
+                    SetParseTreeState(&ParseTree, ParseTreeStateError);
                 } break;
             }
         }
     }
 
-    return Result;
+    return ParseTree.State;
 }

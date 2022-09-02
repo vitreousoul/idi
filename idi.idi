@@ -1,9 +1,1 @@
-bind ExampleBinding {
-    Baz : Foo Bar;
-    Foo : "Foo";
-    Bar : "Bar";
-}
-
-match ExampleMatcher {
-    ExampleGrammar.Baz;
-}
+bind

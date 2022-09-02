@@ -4,55 +4,37 @@
 #include "types.h"
 #include "buffer.h"
 
-static const u32 MAX_STATE_ARRAY_COUNT = 128;
-
-typedef enum parser_state
+typedef enum parse_tree_state
 {
-ParserStateTopLevel,
-ParserStateBind,
-ParserStateBindName,
-ParserStateVariable,
-ParserStateBindBlockOpen,
-ParserStateBindBlockClose,
-ParserStateBindStatements,
-ParserStateBindStatementOperator,
-ParserStateBindExpression,
-ParserStateMatch,
-ParserStateEnd,
-} parser_state;
+ParseTreeStateRunning,
+ParseTreeStateSuccess,
+ParseTreeStateError,
+} parse_tree_state;
 
-typedef enum token_type
+typedef enum parse_tree_type
 {
-TokenTypeStreamBegin,
-TokenTypeKeywordBind,
-TokenTypeOperatorEqual,
-TokenTypeVariable,
-TokenTypeCurlyOpen,
-TokenTypeCurlyClose,
-TokenTypeStreamEnd,
-TokenTypeError,
-} token_type;
+ParseTreeTypeTextMatch,
+} parse_tree_type;
 
-typedef struct parser
+typedef struct text_match_node
 {
-    size At;
-    u32 State[MAX_STATE_ARRAY_COUNT];
-    u32 StatePosition;
-} parser;
-
-typedef struct token_list
-{
-    token_type Type;
     buffer *Text;
-    struct token_list *Next;
-} token_list;
+    size Index;
+} text_match_node;
 
-typedef struct token_range
+typedef struct parse_tree
 {
-    size Begin;
-    size End;
-} token_range;
+    parse_tree_type Type;
+    parse_tree_state State;
+    u32 NodeCount;
+    union
+    {
+        text_match_node *TextMatch;
+        struct parse_tree *Nodes;
+    } Value;
+} parse_tree;
 
-token_list *Parse(buffer Buffer);
+const char *DisplayParseTreeState(parse_tree_state ParseTreeState);
+parse_tree_state ParseBuffer(buffer *Buffer);
 
 #endif // PARSER_H_

@@ -28,7 +28,7 @@ GetBufferSubRegion(buffer *Buffer, size Begin, size End)
 }
 
 static size
-NullTerminatedStringLength(char *String)
+NullTerminatedStringLength(const char *String)
 {
     size Result = 0;
 
@@ -41,7 +41,7 @@ NullTerminatedStringLength(char *String)
 }
 
 buffer *
-BufferFromNullTerminatedString(char *String)
+BufferFromNullTerminatedString(const char *String)
 {
     size StringLength = NullTerminatedStringLength(String);
     buffer *Result = CreateBuffer(StringLength);
