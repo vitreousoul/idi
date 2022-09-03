@@ -56,6 +56,12 @@ GetParseTreeType(parse_tree *ParseTree)
     return Result;
 }
 
+static parse_tree *
+GetParseTreeNode(parse_tree *ParseTree, size Index)
+{
+    return &ParseTree->Value.Nodes[Index];
+}
+
 static void
 SetParseTreeState(parse_tree *ParseTree, parse_tree_state State)
 {
@@ -115,7 +121,8 @@ StepParseTree(parse_tree *ParseTree, parser *Parser, u8 Character)
 
             for(size Index = 0; Index < ParseTree->NodeCount; Index++)
             {
-                parse_tree_state State = GetParseTreeState(&ParseTree->Value.Nodes[Index]);
+                parse_tree *Node = GetParseTreeNode(ParseTree, Index);
+                parse_tree_state State = GetParseTreeState(Node);
 
                 if(State == ParseTreeStateError)
                 {
@@ -128,7 +135,7 @@ StepParseTree(parse_tree *ParseTree, parser *Parser, u8 Character)
                 }
                 else if(State == ParseTreeStateRunning)
                 {
-                    StepParseTree(&ParseTree->Value.Nodes[Index], Parser, Character);
+                    StepParseTree(Node, Parser, Character);
                 }
             }
 
