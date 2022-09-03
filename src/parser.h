@@ -15,6 +15,7 @@ typedef enum parse_tree_type
 {
 ParseTreeTypeTextMatch,
 ParseTreeTypeAnd,
+ParseTreeTypeOr,
 } parse_tree_type;
 
 typedef struct text_match_node

@@ -45,7 +45,7 @@ static parse_tree
 CreateAndParseTree(u32 NodeCount, parse_tree *Nodes)
 {
     parse_tree Result;
-    Result.Type = ParseTreeTypeAnd;
+    Result.Type = ParseTreeTypeOr;
     Result.State = ParseTreeStateRunning;
     Result.NodeCount = NodeCount;
     Result.Value.Nodes = Nodes;
@@ -112,6 +112,7 @@ DisplayParseTreeType(parse_tree *ParseTree)
     {
         case ParseTreeTypeTextMatch: return "ParseTreeTypeTextMatch";
         case ParseTreeTypeAnd: return "ParseTreeTypeAnd";
+        case ParseTreeTypeOr: return "ParseTreeTypeOr";
     }
 }
 
@@ -145,15 +146,15 @@ StepParseTree(parse_tree *ParseTree, parser *Parser, u8 Character)
             for(size Index = 0; Index < ParseTree->NodeCount; Index++)
             {
                 parse_tree *Node = GetParseTreeNode(ParseTree, Index);
-                parse_tree_state State = GetParseTreeState(Node);
+                parse_tree_state NodeState = GetParseTreeState(Node);
 
-                if(State == ParseTreeStateError)
+                if(NodeState == ParseTreeStateError)
                 {
                     SetParseTreeState(ParseTree, ParseTreeStateError);
                     AllSuccess = False;
                     break;
                 }
-                else if(State == ParseTreeStateRunning)
+                else if(NodeState == ParseTreeStateRunning)
                 {
                     StepParseTree(Node, Parser, Character);
 
@@ -163,7 +164,7 @@ StepParseTree(parse_tree *ParseTree, parser *Parser, u8 Character)
                         break;
                     }
                 }
-                else if (State == ParseTreeStateSuccess)
+                else if (NodeState == ParseTreeStateSuccess)
                 {
                     continue;
                 }
@@ -172,6 +173,42 @@ StepParseTree(parse_tree *ParseTree, parser *Parser, u8 Character)
             if(AllSuccess)
             {
                 SetParseTreeState(ParseTree, ParseTreeStateSuccess);
+            }
+            else
+            {
+                ++Parser->Index;
+            }
+        } break;
+        case ParseTreeTypeOr:
+        {
+            printf("ParseTreeTypeOr\n");
+            b32 AllError = True;
+
+            for(size Index = 0; Index < ParseTree->NodeCount; Index++)
+            {
+                parse_tree *Node = GetParseTreeNode(ParseTree, Index);
+                parse_tree_state NodeState = GetParseTreeState(Node);
+                printf("ParseTreeTypeOr Node[%lu]\n", Index);
+                printf("ParseTreeTypeOr NodeState = %s\n", DisplayParseTreeState(Node));
+
+                if(NodeState == ParseTreeStateSuccess)
+                {
+                    SetParseTreeState(ParseTree, ParseTreeStateSuccess);
+                }
+                else if(NodeState == ParseTreeStateRunning)
+                {
+                    StepParseTree(Node, Parser, Character);
+                }
+
+                if(NodeState != ParseTreeStateError)
+                {
+                    AllError = False;
+                }
+            }
+
+            if(AllError)
+            {
+                SetParseTreeState(ParseTree, ParseTreeStateError);
             }
             else
             {
