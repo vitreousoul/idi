@@ -45,6 +45,18 @@ static parse_tree
 CreateAndParseTree(u32 NodeCount, parse_tree *Nodes)
 {
     parse_tree Result;
+    Result.Type = ParseTreeTypeAnd;
+    Result.State = ParseTreeStateRunning;
+    Result.NodeCount = NodeCount;
+    Result.Value.Nodes = Nodes;
+
+    return Result;
+}
+
+static parse_tree
+CreateOrParseTree(u32 NodeCount, parse_tree *Nodes)
+{
+    parse_tree Result;
     Result.Type = ParseTreeTypeOr;
     Result.State = ParseTreeStateRunning;
     Result.NodeCount = NodeCount;
@@ -117,22 +129,22 @@ DisplayParseTreeType(parse_tree *ParseTree)
 }
 
 static void
-StepParseTree(parse_tree *ParseTree, parser *Parser, u8 Character)
+StepParseTree(parse_tree *ParseTree, u8 Character)
 {
-    printf("StepParseTree\n");
     switch(GetParseTreeType(ParseTree))
     {
         case ParseTreeTypeTextMatch:
         {
             u8 TextMatchChar = GetTextMatchCharacter(ParseTree->Value.TextMatch);
 
-            if(TextMatchChar == '\0')
-            {
-                SetParseTreeState(ParseTree, ParseTreeStateSuccess);
-            }
-            else if(Character == TextMatchChar)
+            if(Character == TextMatchChar)
             {
                 ++ParseTree->Value.TextMatch->Index;
+
+                if(GetTextMatchCharacter(ParseTree->Value.TextMatch) == '\0')
+                {
+                    SetParseTreeState(ParseTree, ParseTreeStateSuccess);
+                }
             }
             else
             {
@@ -146,27 +158,18 @@ StepParseTree(parse_tree *ParseTree, parser *Parser, u8 Character)
             for(size Index = 0; Index < ParseTree->NodeCount; Index++)
             {
                 parse_tree *Node = GetParseTreeNode(ParseTree, Index);
-                parse_tree_state NodeState = GetParseTreeState(Node);
 
-                if(NodeState == ParseTreeStateError)
+                if(GetParseTreeState(Node) == ParseTreeStateError)
                 {
                     SetParseTreeState(ParseTree, ParseTreeStateError);
                     AllSuccess = False;
                     break;
                 }
-                else if(NodeState == ParseTreeStateRunning)
+                else if(GetParseTreeState(Node) == ParseTreeStateRunning)
                 {
-                    StepParseTree(Node, Parser, Character);
-
-                    if(GetParseTreeState(Node) != ParseTreeStateSuccess)
-                    {
-                        AllSuccess = False;
-                        break;
-                    }
-                }
-                else if (NodeState == ParseTreeStateSuccess)
-                {
-                    continue;
+                    StepParseTree(Node, Character);
+                    AllSuccess = False;
+                    break;
                 }
             }
 
@@ -174,33 +177,27 @@ StepParseTree(parse_tree *ParseTree, parser *Parser, u8 Character)
             {
                 SetParseTreeState(ParseTree, ParseTreeStateSuccess);
             }
-            else
-            {
-                ++Parser->Index;
-            }
         } break;
         case ParseTreeTypeOr:
         {
-            printf("ParseTreeTypeOr\n");
             b32 AllError = True;
 
             for(size Index = 0; Index < ParseTree->NodeCount; Index++)
             {
                 parse_tree *Node = GetParseTreeNode(ParseTree, Index);
-                parse_tree_state NodeState = GetParseTreeState(Node);
-                printf("ParseTreeTypeOr Node[%lu]\n", Index);
-                printf("ParseTreeTypeOr NodeState = %s\n", DisplayParseTreeState(Node));
 
-                if(NodeState == ParseTreeStateSuccess)
+                if(GetParseTreeState(Node) == ParseTreeStateRunning)
+                {
+                    StepParseTree(Node, Character);
+                }
+
+                if(GetParseTreeState(Node) == ParseTreeStateSuccess)
                 {
                     SetParseTreeState(ParseTree, ParseTreeStateSuccess);
+                    AllError = False;
+                    break;
                 }
-                else if(NodeState == ParseTreeStateRunning)
-                {
-                    StepParseTree(Node, Parser, Character);
-                }
-
-                if(NodeState != ParseTreeStateError)
+                else if(GetParseTreeState(Node) != ParseTreeStateError)
                 {
                     AllError = False;
                 }
@@ -209,10 +206,6 @@ StepParseTree(parse_tree *ParseTree, parser *Parser, u8 Character)
             if(AllError)
             {
                 SetParseTreeState(ParseTree, ParseTreeStateError);
-            }
-            else
-            {
-                ++Parser->Index;
             }
         } break;
         default:
@@ -226,10 +219,15 @@ StepParseTree(parse_tree *ParseTree, parser *Parser, u8 Character)
 parse_tree
 CreateDebugParseTree()
 {
-    parse_tree *Nodes = malloc(sizeof(parse_tree) * 2);
-    Nodes[0] = CreateTextMatchParseTree("foo");
-    Nodes[1] = CreateTextMatchParseTree("bar");
-    parse_tree Result = CreateAndParseTree(2, Nodes);
+    parse_tree *FirstNodes = malloc(sizeof(parse_tree) * 2);
+    FirstNodes[0] = CreateTextMatchParseTree("foo");
+    FirstNodes[1] = CreateTextMatchParseTree("bar");
+    parse_tree FirstPartOfOr = CreateAndParseTree(2, FirstNodes);
+    parse_tree SecondPartOfOr = CreateTextMatchParseTree("baz");
+    parse_tree *SecondNodes = malloc(sizeof(parse_tree) * 2);
+    SecondNodes[0] = FirstPartOfOr;
+    SecondNodes[1] = SecondPartOfOr;
+    parse_tree Result = CreateOrParseTree(2, SecondNodes);
 
     return Result;
 }
@@ -249,8 +247,6 @@ ParseBuffer(buffer *Buffer)
     {
         if(Parser.Index >= Buffer->Size)
         {
-            printf("End of buffer\n");
-
             if(GetParseTreeState(&ParseTree) != ParseTreeStateSuccess)
             {
                 SetParseTreeState(&ParseTree, ParseTreeStateError);
@@ -263,8 +259,8 @@ ParseBuffer(buffer *Buffer)
         }
         else
         {
-            printf("\nNext char = \"%c\"\n", Buffer->Data[Parser.Index]);
-            StepParseTree(&ParseTree, &Parser, Buffer->Data[Parser.Index]);
+            StepParseTree(&ParseTree, Buffer->Data[Parser.Index]);
+            ++Parser.Index;
         }
     }
 
