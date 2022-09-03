@@ -14,6 +14,7 @@ ParseTreeStateError,
 typedef enum parse_tree_type
 {
 ParseTreeTypeTextMatch,
+ParseTreeTypeAnd,
 } parse_tree_type;
 
 typedef struct text_match_node
@@ -33,6 +34,11 @@ typedef struct parse_tree
         struct parse_tree *Nodes;
     } Value;
 } parse_tree;
+
+typedef struct parser
+{
+    size Index;
+} parser;
 
 const char *DisplayParseTreeState(parse_tree_state ParseTreeState);
 parse_tree_state ParseBuffer(buffer *Buffer);

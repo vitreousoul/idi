@@ -41,17 +41,17 @@ CreateTextMatchParseTree(const char *Text)
 }
 
 static parse_tree_state
-GetParseTreeState(parse_tree ParseTree)
+GetParseTreeState(parse_tree *ParseTree)
 {
-    parse_tree_state Result = ParseTree.State;
+    parse_tree_state Result = ParseTree->State;
 
     return Result;
 }
 
 static parse_tree_type
-GetParseTreeType(parse_tree ParseTree)
+GetParseTreeType(parse_tree *ParseTree)
 {
-    parse_tree_type Result = ParseTree.Type;
+    parse_tree_type Result = ParseTree->Type;
 
     return Result;
 }
@@ -86,25 +86,87 @@ DisplayParseTreeState(parse_tree_state ParseTreeState)
     }
 }
 
+static void
+StepParseTree(parse_tree *ParseTree, parser *Parser, u8 Character)
+{
+    switch(GetParseTreeType(ParseTree))
+    {
+        case ParseTreeTypeTextMatch:
+        {
+            u8 TextMatchChar = GetTextMatchCharacter(ParseTree->Value.TextMatch);
+
+            if(TextMatchChar == '\0')
+            {
+                SetParseTreeState(ParseTree, ParseTreeStateSuccess);
+            }
+            else if(Character == TextMatchChar)
+            {
+                ++ParseTree->Value.TextMatch->Index;
+                ++Parser->Index;
+            }
+            else
+            {
+                SetParseTreeState(ParseTree, ParseTreeStateError);
+            }
+        } break;
+        case ParseTreeTypeAnd:
+        {
+            b32 AllSuccess = True;
+
+            for(size Index = 0; Index < ParseTree->NodeCount; Index++)
+            {
+                parse_tree_state State = GetParseTreeState(&ParseTree->Value.Nodes[Index]);
+
+                if(State == ParseTreeStateError)
+                {
+                    SetParseTreeState(ParseTree, ParseTreeStateError);
+                    break;
+                }
+                else if(State != ParseTreeStateSuccess)
+                {
+                    AllSuccess = False;
+                }
+                else if(State == ParseTreeStateRunning)
+                {
+                    StepParseTree(&ParseTree->Value.Nodes[Index], Parser, Character);
+                }
+            }
+
+            if(AllSuccess)
+            {
+                SetParseTreeState(ParseTree, ParseTreeStateSuccess);
+            }
+        } break;
+        default:
+        {
+            printf("Error: ParseTree state default case error\n");
+            SetParseTreeState(ParseTree, ParseTreeStateError);
+        } break;
+    }
+}
+
 parse_tree_state
 ParseBuffer(buffer *Buffer)
 {
     // TODO: free stuff we malloced in here >:(  !!!!!
     const char *Text = "bin";
     parse_tree ParseTree = CreateTextMatchParseTree(Text);
+    parser Parser = {0};
 
     const u32 MaxIterCount = 9;
     u32 Iter = 0;
-    size BufferIndex = 0;
 
     printf("begin parse loop\n");
-    while(GetParseTreeState(ParseTree) == ParseTreeStateRunning && (Iter++ < MaxIterCount))
+    while(GetParseTreeState(&ParseTree) == ParseTreeStateRunning && (Iter++ < MaxIterCount))
     {
-        if(BufferIndex >= Buffer->Size)
+        if(Parser.Index >= Buffer->Size)
         {
             printf("End of buffer\n");
-            // TODO: only set to error if state is _not_ success
-            SetParseTreeState(&ParseTree, ParseTreeStateError);
+
+            if(GetParseTreeState(&ParseTree) != ParseTreeStateSuccess)
+            {
+                SetParseTreeState(&ParseTree, ParseTreeStateError);
+            }
         }
         else if(Iter == MaxIterCount)
         {
@@ -113,34 +175,7 @@ ParseBuffer(buffer *Buffer)
         }
         else
         {
-            u8 CurrentChar = Buffer->Data[BufferIndex];
-
-            switch(GetParseTreeType(ParseTree))
-            {
-                case ParseTreeTypeTextMatch:
-                {
-                    u8 TextMatchChar = GetTextMatchCharacter(ParseTree.Value.TextMatch);
-
-                    if(TextMatchChar == '\0')
-                    {
-                        SetParseTreeState(&ParseTree, ParseTreeStateSuccess);
-                    }
-                    else if(CurrentChar == TextMatchChar)
-                    {
-                        ++ParseTree.Value.TextMatch->Index;
-                        ++BufferIndex;
-                    }
-                    else
-                    {
-                        SetParseTreeState(&ParseTree, ParseTreeStateError);
-                    }
-                } break;
-                default:
-                {
-                    printf("Error: ParseTree state dafault case error\n");
-                    SetParseTreeState(&ParseTree, ParseTreeStateError);
-                } break;
-            }
+            StepParseTree(&ParseTree, &Parser, Buffer->Data[Parser.Index]);
         }
     }
 
