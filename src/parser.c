@@ -35,12 +35,25 @@ CreateTextMatchParseTree(const char *Text)
     parse_tree Result;
     Result.Type = ParseTreeTypeTextMatch;
     Result.State = ParseTreeStateRunning;
+    Result.NodeCount = 0;
     Result.Value.TextMatch = CreateTextMatchNode(Text);
 
     return Result;
 }
 
-static parse_tree_state
+static parse_tree
+CreateAndParseTree(u32 NodeCount, parse_tree *Nodes)
+{
+    parse_tree Result;
+    Result.Type = ParseTreeTypeAnd;
+    Result.State = ParseTreeStateRunning;
+    Result.NodeCount = NodeCount;
+    Result.Value.Nodes = Nodes;
+
+    return Result;
+}
+
+parse_tree_state
 GetParseTreeState(parse_tree *ParseTree)
 {
     parse_tree_state Result = ParseTree->State;
@@ -48,7 +61,7 @@ GetParseTreeState(parse_tree *ParseTree)
     return Result;
 }
 
-static parse_tree_type
+parse_tree_type
 GetParseTreeType(parse_tree *ParseTree)
 {
     parse_tree_type Result = ParseTree->Type;
@@ -82,9 +95,9 @@ GetTextMatchCharacter(text_match_node *TextMatchNode)
 }
 
 const char *
-DisplayParseTreeState(parse_tree_state ParseTreeState)
+DisplayParseTreeState(parse_tree *ParseTree)
 {
-    switch(ParseTreeState)
+    switch(GetParseTreeState(ParseTree))
     {
         case ParseTreeStateRunning: return "ParseTreeStateRunning";
         case ParseTreeStateSuccess: return "ParseTreeStateSuccess";
@@ -92,9 +105,20 @@ DisplayParseTreeState(parse_tree_state ParseTreeState)
     }
 }
 
+const char *
+DisplayParseTreeType(parse_tree *ParseTree)
+{
+    switch(GetParseTreeType(ParseTree))
+    {
+        case ParseTreeTypeTextMatch: return "ParseTreeTypeTextMatch";
+        case ParseTreeTypeAnd: return "ParseTreeTypeAnd";
+    }
+}
+
 static void
 StepParseTree(parse_tree *ParseTree, parser *Parser, u8 Character)
 {
+    printf("StepParseTree\n");
     switch(GetParseTreeType(ParseTree))
     {
         case ParseTreeTypeTextMatch:
@@ -108,7 +132,6 @@ StepParseTree(parse_tree *ParseTree, parser *Parser, u8 Character)
             else if(Character == TextMatchChar)
             {
                 ++ParseTree->Value.TextMatch->Index;
-                ++Parser->Index;
             }
             else
             {
@@ -127,21 +150,32 @@ StepParseTree(parse_tree *ParseTree, parser *Parser, u8 Character)
                 if(State == ParseTreeStateError)
                 {
                     SetParseTreeState(ParseTree, ParseTreeStateError);
-                    break;
-                }
-                else if(State != ParseTreeStateSuccess)
-                {
                     AllSuccess = False;
+                    break;
                 }
                 else if(State == ParseTreeStateRunning)
                 {
                     StepParseTree(Node, Parser, Character);
+
+                    if(GetParseTreeState(Node) != ParseTreeStateSuccess)
+                    {
+                        AllSuccess = False;
+                        break;
+                    }
+                }
+                else if (State == ParseTreeStateSuccess)
+                {
+                    continue;
                 }
             }
 
             if(AllSuccess)
             {
                 SetParseTreeState(ParseTree, ParseTreeStateSuccess);
+            }
+            else
+            {
+                ++Parser->Index;
             }
         } break;
         default:
@@ -152,12 +186,22 @@ StepParseTree(parse_tree *ParseTree, parser *Parser, u8 Character)
     }
 }
 
-parse_tree_state
+parse_tree
+CreateDebugParseTree()
+{
+    parse_tree *Nodes = malloc(sizeof(parse_tree) * 2);
+    Nodes[0] = CreateTextMatchParseTree("foo");
+    Nodes[1] = CreateTextMatchParseTree("bar");
+    parse_tree Result = CreateAndParseTree(2, Nodes);
+
+    return Result;
+}
+
+parse_tree
 ParseBuffer(buffer *Buffer)
 {
     // TODO: free stuff we malloced in here >:(  !!!!!
-    const char *Text = "bin";
-    parse_tree ParseTree = CreateTextMatchParseTree(Text);
+    parse_tree ParseTree = CreateDebugParseTree();
     parser Parser = {0};
 
     const u32 MaxIterCount = 9;
@@ -182,9 +226,10 @@ ParseBuffer(buffer *Buffer)
         }
         else
         {
+            printf("\nNext char = \"%c\"\n", Buffer->Data[Parser.Index]);
             StepParseTree(&ParseTree, &Parser, Buffer->Data[Parser.Index]);
         }
     }
 
-    return ParseTree.State;
+    return ParseTree;
 }

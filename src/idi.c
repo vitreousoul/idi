@@ -37,11 +37,11 @@ WriteBufferToFile(buffer *Buffer, const char *FilePath)
 int
 main()
 {
-    int Result = 0;
     buffer *Buffer = ReadFileIntoBuffer("idi.idi");
 
-    Result = (int)ParseBuffer(Buffer);
-    printf("Parse Result: %s\n", DisplayParseTreeState(Result));
+    parse_tree ParseTree = ParseBuffer(Buffer);
+    int Result = GetParseTreeState(&ParseTree);
+    printf("Parse Result: %s\n", DisplayParseTreeState(&ParseTree));
 
     free(Buffer->Data);
     free(Buffer);

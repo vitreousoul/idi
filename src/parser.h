@@ -40,7 +40,8 @@ typedef struct parser
     size Index;
 } parser;
 
-const char *DisplayParseTreeState(parse_tree_state ParseTreeState);
-parse_tree_state ParseBuffer(buffer *Buffer);
+const char *DisplayParseTreeState(parse_tree *ParseTree);
+parse_tree_state GetParseTreeState(parse_tree *ParseTree);
+parse_tree ParseBuffer(buffer *Buffer);
 
 #endif // PARSER_H_

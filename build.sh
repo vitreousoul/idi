@@ -8,7 +8,7 @@ if [ $DEBUG -eq 0 ]; then
     TARGET="-o build/idi.exe"
 else
     echo "Debug build";
-    TARGET="-g"
+    TARGET="-g3 -O0"
 fi
 
 gcc $TARGET $SOURCE_FILES
