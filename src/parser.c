@@ -189,6 +189,7 @@ StepParseTree(parse_tree *ParseTree, u8 Character)
                 SetParseTreeState(ParseTree, ParseTreeStateError);
             }
         } break;
+
         case ParseTreeTypeCharSet:
         {
             b32 Match = 0;
@@ -211,6 +212,7 @@ StepParseTree(parse_tree *ParseTree, u8 Character)
                 SetParseTreeState(ParseTree, ParseTreeStateError);
             }
         } break;
+
         case ParseTreeTypeAnd:
         {
             b32 AllSuccess = True;
@@ -238,6 +240,7 @@ StepParseTree(parse_tree *ParseTree, u8 Character)
                 SetParseTreeState(ParseTree, ParseTreeStateSuccess);
             }
         } break;
+
         case ParseTreeTypeOr:
         {
             b32 AllError = True;
@@ -268,6 +271,7 @@ StepParseTree(parse_tree *ParseTree, u8 Character)
                 SetParseTreeState(ParseTree, ParseTreeStateError);
             }
         } break;
+
         default:
         {
             printf("Error: ParseTree state default case error\n");
