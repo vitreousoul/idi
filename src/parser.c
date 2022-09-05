@@ -29,6 +29,16 @@ CreateTextMatchNode(const char *Text)
     return Result;
 }
 
+static char_set_node *
+CreateCharSetNode(const char *CharSet)
+{
+    buffer *BufferText = BufferFromNullTerminatedString(CharSet);
+    char_set_node *Result = malloc(sizeof(text_match_node));
+    Result->Text = BufferText;
+
+    return Result;
+}
+
 static parse_tree
 CreateTextMatchParseTree(const char *Text)
 {
@@ -37,6 +47,18 @@ CreateTextMatchParseTree(const char *Text)
     Result.State = ParseTreeStateRunning;
     Result.NodeCount = 0;
     Result.Value.TextMatch = CreateTextMatchNode(Text);
+
+    return Result;
+}
+
+static parse_tree
+CreateCharSetParseTree(const char *CharSet)
+{
+    parse_tree Result;
+    Result.Type = ParseTreeTypeCharSet;
+    Result.State = ParseTreeStateRunning;
+    Result.NodeCount = 0;
+    Result.Value.CharSet = CreateCharSetNode(CharSet);
 
     return Result;
 }
@@ -87,6 +109,21 @@ GetParseTreeNode(parse_tree *ParseTree, size Index)
     return &ParseTree->Value.Nodes[Index];
 }
 
+static size
+GetCharSetTextSize(parse_tree *ParseTree)
+{
+    size Result = ParseTree->Value.CharSet->Text->Size;
+    return Result;
+}
+
+static char
+GetCharSetChar(parse_tree *ParseTree, size Index)
+{
+    char Result = ParseTree->Value.CharSet->Text->Data[Index];
+
+    return Result;
+}
+
 static void
 SetParseTreeState(parse_tree *ParseTree, parse_tree_state State)
 {
@@ -123,6 +160,7 @@ DisplayParseTreeType(parse_tree *ParseTree)
     switch(GetParseTreeType(ParseTree))
     {
         case ParseTreeTypeTextMatch: return "ParseTreeTypeTextMatch";
+        case ParseTreeTypeCharSet: return "ParseTreeTypeCharSet";
         case ParseTreeTypeAnd: return "ParseTreeTypeAnd";
         case ParseTreeTypeOr: return "ParseTreeTypeOr";
     }
@@ -145,6 +183,28 @@ StepParseTree(parse_tree *ParseTree, u8 Character)
                 {
                     SetParseTreeState(ParseTree, ParseTreeStateSuccess);
                 }
+            }
+            else
+            {
+                SetParseTreeState(ParseTree, ParseTreeStateError);
+            }
+        } break;
+        case ParseTreeTypeCharSet:
+        {
+            b32 Match = 0;
+
+            for(size Index = 0; Index < GetCharSetTextSize(ParseTree); Index++)
+            {
+                if (GetCharSetChar(ParseTree, Index) == Character)
+                {
+                    Match = 1;
+                    break;
+                }
+            }
+
+            if (Match)
+            {
+                SetParseTreeState(ParseTree, ParseTreeStateSuccess);
             }
             else
             {
@@ -236,7 +296,9 @@ parse_tree
 ParseBuffer(buffer *Buffer)
 {
     // TODO: free stuff we malloced in here >:(  !!!!!
-    parse_tree ParseTree = CreateDebugParseTree();
+    /* parse_tree ParseTree = CreateDebugParseTree(); */
+    parse_tree ParseTree = CreateCharSetParseTree("abcd");
+
     parser Parser = {0};
 
     const u32 MaxIterCount = 9;

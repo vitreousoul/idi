@@ -1,1 +1,6 @@
-foobar
+match MyMatcher
+  (or (and "foo" "bar")
+      "baz")
+
+parse MyMatcher
+  "foo.txt"

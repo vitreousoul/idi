@@ -14,6 +14,7 @@ ParseTreeStateError,
 typedef enum parse_tree_type
 {
 ParseTreeTypeTextMatch,
+ParseTreeTypeCharSet,
 ParseTreeTypeAnd,
 ParseTreeTypeOr,
 } parse_tree_type;
@@ -24,6 +25,11 @@ typedef struct text_match_node
     size Index;
 } text_match_node;
 
+typedef struct char_set_node
+{
+    buffer *Text;
+} char_set_node;
+
 typedef struct parse_tree
 {
     parse_tree_type Type;
@@ -32,6 +38,7 @@ typedef struct parse_tree
     union
     {
         text_match_node *TextMatch;
+        char_set_node *CharSet;
         struct parse_tree *Nodes;
     } Value;
 } parse_tree;
