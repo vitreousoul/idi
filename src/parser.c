@@ -64,6 +64,21 @@ CreateCharSetParseTree(const char *CharSet)
 }
 
 static parse_tree
+CreateCharRangeParseTree(char Begin, char End)
+{
+    parse_tree Result;
+    Result.Type = ParseTreeTypeCharRange;
+    Result.State = ParseTreeStateRunning;
+    Result.NodeCount = 0;
+    char_range *CharRange = malloc(sizeof(char_range));
+    CharRange->Begin = Begin;
+    CharRange->End = End;
+    Result.Value.CharRange = CharRange;
+
+    return Result;
+}
+
+static parse_tree
 CreateAndParseTree(u32 NodeCount, parse_tree *Nodes)
 {
     parse_tree Result;
@@ -161,6 +176,7 @@ DisplayParseTreeType(parse_tree *ParseTree)
     {
         case ParseTreeTypeTextMatch: return "ParseTreeTypeTextMatch";
         case ParseTreeTypeCharSet: return "ParseTreeTypeCharSet";
+        case ParseTreeTypeCharRange: return "ParseTreeTypeCharRange";
         case ParseTreeTypeAnd: return "ParseTreeTypeAnd";
         case ParseTreeTypeOr: return "ParseTreeTypeOr";
     }
@@ -204,6 +220,19 @@ StepParseTree(parse_tree *ParseTree, u8 Character)
             }
 
             if (Match)
+            {
+                SetParseTreeState(ParseTree, ParseTreeStateSuccess);
+            }
+            else
+            {
+                SetParseTreeState(ParseTree, ParseTreeStateError);
+            }
+        } break;
+
+        case ParseTreeTypeCharRange:
+        {
+            if((Character >= ParseTree->Value.CharRange->Begin &&
+                Character <= ParseTree->Value.CharRange->End))
             {
                 SetParseTreeState(ParseTree, ParseTreeStateSuccess);
             }
@@ -281,6 +310,21 @@ StepParseTree(parse_tree *ParseTree, u8 Character)
 }
 
 parse_tree
+CreateTitleStringParseTree()
+{
+    parse_tree *AlphaNodes = malloc(sizeof(parse_tree) * 2);
+    AlphaNodes[0] = CreateCharRangeParseTree('A', 'Z');
+    AlphaNodes[1] = CreateCharRangeParseTree('a', 'z');
+    parse_tree AlphaParseTree = CreateOrParseTree(2, AlphaNodes);
+    parse_tree *ResultNodes = malloc(sizeof(parse_tree) * 2);
+    ResultNodes[0] = CreateCharRangeParseTree('A', 'Z');
+    ResultNodes[1] = AlphaParseTree;
+    parse_tree Result = CreateAndParseTree(2, ResultNodes);
+
+    return Result;
+}
+
+parse_tree
 CreateDebugParseTree()
 {
     parse_tree *FirstNodes = malloc(sizeof(parse_tree) * 2);
@@ -301,7 +345,8 @@ ParseBuffer(buffer *Buffer)
 {
     // TODO: free stuff we malloced in here >:(  !!!!!
     /* parse_tree ParseTree = CreateDebugParseTree(); */
-    parse_tree ParseTree = CreateCharSetParseTree("abcd");
+    /* parse_tree ParseTree = CreateCharSetParseTree("abcd"); */
+    parse_tree ParseTree = CreateTitleStringParseTree();
 
     parser Parser = {0};
 

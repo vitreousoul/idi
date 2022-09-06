@@ -15,6 +15,7 @@ typedef enum parse_tree_type
 {
 ParseTreeTypeTextMatch,
 ParseTreeTypeCharSet,
+ParseTreeTypeCharRange,
 ParseTreeTypeAnd,
 ParseTreeTypeOr,
 } parse_tree_type;
@@ -30,6 +31,12 @@ typedef struct char_set_node
     buffer *Text;
 } char_set_node;
 
+typedef struct char_range
+{
+    char Begin;
+    char End;
+} char_range;
+
 typedef struct parse_tree
 {
     parse_tree_type Type;
@@ -39,6 +46,7 @@ typedef struct parse_tree
     {
         text_match_node *TextMatch;
         char_set_node *CharSet;
+        char_range *CharRange;
         struct parse_tree *Nodes;
     } Value;
 } parse_tree;
