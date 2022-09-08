@@ -1,7 +1,3 @@
-#include <stdio.h>
-
-#include "parser.h"
-
 #define ArrayItemSize(Array) (sizeof(Array[0]))
 #define ArrayCount(Array) (sizeof(Array) / ArrayItemSize(Array))
 

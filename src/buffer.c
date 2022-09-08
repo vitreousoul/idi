@@ -1,5 +1,3 @@
-#include "buffer.h"
-
 buffer *
 CreateBuffer(size Size)
 {

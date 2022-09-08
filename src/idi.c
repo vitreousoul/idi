@@ -1,5 +1,8 @@
 #include "idi.h"
 
+#include "buffer.c"
+#include "parser.c"
+
 static size
 GetFileSize(FILE *File)
 {

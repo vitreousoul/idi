@@ -1,9 +1,6 @@
 #ifndef PARSER_H_
 #define PARSER_H_
 
-#include "types.h"
-#include "buffer.h"
-
 typedef enum parse_tree_state
 {
 ParseTreeStateRunning,
