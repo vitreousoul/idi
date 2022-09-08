@@ -1,6 +1,9 @@
-match MyMatcher
-  (or (and "foo" "bar")
-      "baz")
+set Path "./idi.idi"
 
-parse MyMatcher
-  "foo.txt"
+grammar IdiGrammar
+(
+    Variable (and [A-Z] [a-z])
+    Binding (and "set" Variable)
+)
+
+match MyCoolGrammar.Root Path
