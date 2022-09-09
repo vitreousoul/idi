@@ -7,7 +7,7 @@
 #define CharIsAlphaNum(Char) (CharIsUpperCase(Char) || CharIsLowerCase(Char) || CharIsDigit(Char))
 #define CharIsSpace(Char) ((Char == ' ') || (Char == '\n') || (Char == '\r') || (Char == '\t'))
 
-void
+static void
 Error(const char *Message)
 {
     printf("Error: %s\n", Message);
@@ -305,7 +305,7 @@ StepParseTree(parse_tree *ParseTree, u8 Character)
     }
 }
 
-parse_tree
+static parse_tree
 CreateTitleStringParseTree()
 {
     parse_tree *AlphaNodes = malloc(sizeof(parse_tree) * 2);
@@ -320,7 +320,7 @@ CreateTitleStringParseTree()
     return Result;
 }
 
-parse_tree
+static parse_tree
 CreateDebugParseTree()
 {
     parse_tree *FirstNodes = malloc(sizeof(parse_tree) * 2);
