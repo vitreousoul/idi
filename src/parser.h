@@ -1,17 +1,17 @@
 typedef enum parse_tree_state
 {
-ParseTreeStateRunning,
-ParseTreeStateSuccess,
-ParseTreeStateError,
+    ParseTreeStateRunning,
+    ParseTreeStateSuccess,
+    ParseTreeStateError,
 } parse_tree_state;
 
 typedef enum parse_tree_type
 {
-ParseTreeTypeTextMatch,
-ParseTreeTypeCharSet,
-ParseTreeTypeCharRange,
-ParseTreeTypeAnd,
-ParseTreeTypeOr,
+    ParseTreeTypeTextMatch,
+    ParseTreeTypeCharSet,
+    ParseTreeTypeCharRange,
+    ParseTreeTypeAnd,
+    ParseTreeTypeOr,
 } parse_tree_type;
 
 typedef struct text_match_node
@@ -22,6 +22,7 @@ typedef struct text_match_node
 
 typedef struct char_set_node
 {
+    b32 Exclusive;
     buffer *Text;
 } char_set_node;
 
@@ -31,15 +32,24 @@ typedef struct char_range
     char End;
 } char_range;
 
+typedef struct string_literal_node
+{
+    b32 InsideString;
+} string_literal_node;
+
 typedef struct parse_tree
 {
     parse_tree_type Type;
     parse_tree_state State;
     u32 NodeCount;
+    u32 Repeat;
+    u32 RepeatCount;
+
     union
     {
         text_match_node *TextMatch;
         char_set_node *CharSet;
+        string_literal_node *StringLiteral;
         char_range *CharRange;
         struct parse_tree *Nodes;
     } Value;
