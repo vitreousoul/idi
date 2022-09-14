@@ -42,8 +42,9 @@ typedef struct parse_tree
     parse_tree_type Type;
     parse_tree_state State;
     u32 NodeCount;
-    u32 Repeat;
+    i32 Repeat;
     u32 RepeatCount;
+    u8 RepeatEndChar;
 
     union
     {

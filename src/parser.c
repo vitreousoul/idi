@@ -14,6 +14,12 @@ Error(const char *Message)
     exit(1);
 }
 
+static void
+Log(const char *Message)
+{
+    printf("%s\n", Message);
+}
+
 static text_match_node *
 CreateTextMatchNode(const char *Text)
 {
@@ -230,6 +236,12 @@ ResetParseTree(parse_tree *ParseTree)
 static void
 StepParseTree(parse_tree *ParseTree, u8 Character)
 {
+    if((ParseTree->Repeat < 0) && (Character == ParseTree->RepeatEndChar))
+    {
+        SetParseTreeState(ParseTree, ParseTreeStateSuccess);
+        return;
+    }
+
     switch(GetParseTreeType(ParseTree))
     {
     case ParseTreeTypeTextMatch:
@@ -264,7 +276,8 @@ StepParseTree(parse_tree *ParseTree, u8 Character)
             }
         }
 
-        if(ParseTree->Value.CharSet->Exclusive) {
+        if(ParseTree->Value.CharSet->Exclusive)
+        {
             Match = !Match;
         }
 
@@ -352,7 +365,7 @@ StepParseTree(parse_tree *ParseTree, u8 Character)
 
     default:
     {
-        printf("Error: ParseTree state default case error\n");
+        Log("Error: ParseTree state default case error\n");
         SetParseTreeState(ParseTree, ParseTreeStateError);
     } break;
     }
@@ -386,7 +399,12 @@ CreateTitleStringParseTree()
 static parse_tree
 CreateStringLiteralParseTree()
 {
-    parse_tree Result = CreateCharSetParseTree("\"", 0);
+    parse_tree *AndNodes = malloc(sizeof(parse_tree) * 2);
+    AndNodes[0] = CreateCharSetParseTree("\"", 0);
+    AndNodes[1] = CreateCharSetParseTree("\"", 1);
+    AndNodes[1].Repeat = -1;
+    AndNodes[1].RepeatEndChar = '\"';
+    parse_tree Result = CreateAndParseTree(2, AndNodes);
 
     return Result;
 }
@@ -440,14 +458,15 @@ ParseBuffer(buffer *Buffer)
     /* parse_tree ParseTree = CreateDebugParseTree(); */
     /* parse_tree ParseTree = CreateCharSetParseTree("abcd", 0); */
     /* parse_tree ParseTree = CreateTitleStringParseTree(); */
-    parse_tree ParseTree = CreateDebugRepeatParseTree();
+    /* parse_tree ParseTree = CreateDebugRepeatParseTree(); */
+    parse_tree ParseTree = CreateStringLiteralParseTree();
 
     parser Parser = {0};
 
     const u32 MaxIterCount = 1000;
     u32 Iter = 0;
 
-    printf("begin parse loop\n");
+    Log("begin parse loop\n");
     while(GetParseTreeState(&ParseTree) == ParseTreeStateRunning && (Iter++ < MaxIterCount))
     {
         if(Parser.Index >= Buffer->Size)
@@ -459,7 +478,7 @@ ParseBuffer(buffer *Buffer)
         }
         else if(Iter == MaxIterCount)
         {
-            printf("\nMax iterations\n");
+            Log("\nMax iterations\n");
             SetParseTreeState(&ParseTree, ParseTreeStateError);
         }
         else

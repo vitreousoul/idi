@@ -1,10 +1,1 @@
-foobarbarfbo
-set Path "./idi.idi"
-
-grammar IdiGrammar
-(
-    Variable (and [A-Z] [a-z])
-    Binding (and "set" Variable)
-)
-
-match MyCoolGrammar.Root Path
+""foobarbarfbo
