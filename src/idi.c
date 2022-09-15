@@ -43,7 +43,7 @@ main()
     buffer *Buffer = ReadFileIntoBuffer("idi.idi");
 
     parse_tree ParseTree = ParseBuffer(Buffer);
-    int Result = GetParseTreeState(&ParseTree);
+    int Result = ParseTree.State;
     printf("Parse Result: %s\n", DisplayParseTreeState(&ParseTree));
 
     free(Buffer->Data);

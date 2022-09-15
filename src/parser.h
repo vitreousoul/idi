@@ -45,6 +45,7 @@ typedef struct parse_tree
     i32 Repeat;
     u32 RepeatCount;
     u8 RepeatEndChar;
+    b32 ConsumeWhitespace;
 
     union
     {

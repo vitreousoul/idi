@@ -1,3 +1,11 @@
+// TODO: we need a better implementation of repeat for parse_trees. It should be like regex
+// where you repeat until you fail.
+//     * Can fail or repeat, if any success, repeat till failure but ultimately succeed
+//     + Must succeed once, then repeats until failure, but should be successful overall
+//
+// TODO: convert ConsumeWhitespace into a parse_tree: CreateCharSetNode(" \n\r\t", 0) with *-repeat
+//
+//
 #define ArrayItemSize(Array) (sizeof(Array[0]))
 #define ArrayCount(Array) (sizeof(Array) / ArrayItemSize(Array))
 
@@ -6,6 +14,9 @@
 #define CharIsDigit(Char) (Char >= '0' && Char <= '9')
 #define CharIsAlphaNum(Char) (CharIsUpperCase(Char) || CharIsLowerCase(Char) || CharIsDigit(Char))
 #define CharIsSpace(Char) ((Char == ' ') || (Char == '\n') || (Char == '\r') || (Char == '\t'))
+
+u32 IndentationCount = 0;
+u32 IndentationSize = 1;
 
 static void
 Error(const char *Message)
@@ -18,6 +29,15 @@ static void
 Log(const char *Message)
 {
     printf("%s\n", Message);
+}
+
+static void
+PrintIndentation()
+{
+    for(u32 I = 0; I < IndentationCount; I++)
+    {
+        printf(" ");
+    }
 }
 
 static text_match_node *
@@ -50,6 +70,7 @@ CreateTextMatchParseTree(const char *Text)
     Result.State = ParseTreeStateRunning;
     Result.Repeat = 0;
     Result.RepeatCount = 0;
+    Result.ConsumeWhitespace = 0;
     Result.NodeCount = 0;
     Result.Value.TextMatch = CreateTextMatchNode(Text);
 
@@ -64,6 +85,7 @@ CreateCharSetParseTree(const char *CharSet, b32 Exclusive)
     Result.State = ParseTreeStateRunning;
     Result.Repeat = 0;
     Result.RepeatCount = 0;
+    Result.ConsumeWhitespace = 0;
     Result.NodeCount = 0;
     Result.Value.CharSet = CreateCharSetNode(CharSet, Exclusive);
 
@@ -78,6 +100,7 @@ CreateCharRangeParseTree(char Begin, char End)
     Result.State = ParseTreeStateRunning;
     Result.Repeat = 0;
     Result.RepeatCount = 0;
+    Result.ConsumeWhitespace = 0;
     Result.NodeCount = 0;
     char_range *CharRange = malloc(sizeof(char_range));
     CharRange->Begin = Begin;
@@ -95,6 +118,7 @@ CreateAndParseTree(u32 NodeCount, parse_tree *Nodes)
     Result.State = ParseTreeStateRunning;
     Result.Repeat = 0;
     Result.RepeatCount = 0;
+    Result.ConsumeWhitespace = 0;
     Result.NodeCount = NodeCount;
     Result.Value.Nodes = Nodes;
 
@@ -109,24 +133,9 @@ CreateOrParseTree(u32 NodeCount, parse_tree *Nodes)
     Result.State = ParseTreeStateRunning;
     Result.Repeat = 0;
     Result.RepeatCount = 0;
+    Result.ConsumeWhitespace = 0;
     Result.NodeCount = NodeCount;
     Result.Value.Nodes = Nodes;
-
-    return Result;
-}
-
-parse_tree_state
-GetParseTreeState(parse_tree *ParseTree)
-{
-    parse_tree_state Result = ParseTree->State;
-
-    return Result;
-}
-
-parse_tree_type
-GetParseTreeType(parse_tree *ParseTree)
-{
-    parse_tree_type Result = ParseTree->Type;
 
     return Result;
 }
@@ -152,12 +161,6 @@ GetCharSetChar(parse_tree *ParseTree, size Index)
     return Result;
 }
 
-static void
-SetParseTreeState(parse_tree *ParseTree, parse_tree_state State)
-{
-    ParseTree->State = State;
-}
-
 static u8
 GetTextMatchCharacter(text_match_node *TextMatchNode)
 {
@@ -174,7 +177,7 @@ GetTextMatchCharacter(text_match_node *TextMatchNode)
 const char *
 DisplayParseTreeState(parse_tree *ParseTree)
 {
-    switch(GetParseTreeState(ParseTree))
+    switch(ParseTree->State)
     {
     case ParseTreeStateRunning: return "ParseTreeStateRunning";
     case ParseTreeStateSuccess: return "ParseTreeStateSuccess";
@@ -185,7 +188,7 @@ DisplayParseTreeState(parse_tree *ParseTree)
 static b32
 ParseTreeShouldRepeat(parse_tree *ParseTree)
 {
-    b32 Result = (GetParseTreeState(ParseTree) == ParseTreeStateSuccess &&
+    b32 Result = (ParseTree->State == ParseTreeStateSuccess &&
                   ParseTree->RepeatCount < ParseTree->Repeat);
 
     return Result;
@@ -194,7 +197,7 @@ ParseTreeShouldRepeat(parse_tree *ParseTree)
 const char *
 DisplayParseTreeType(parse_tree *ParseTree)
 {
-    switch(GetParseTreeType(ParseTree))
+    switch(ParseTree->Type)
     {
     case ParseTreeTypeTextMatch: return "ParseTreeTypeTextMatch";
     case ParseTreeTypeCharSet: return "ParseTreeTypeCharSet";
@@ -207,9 +210,9 @@ DisplayParseTreeType(parse_tree *ParseTree)
 static void
 ResetParseTree(parse_tree *ParseTree)
 {
-    SetParseTreeState(ParseTree, ParseTreeStateRunning);
+    ParseTree->State =  ParseTreeStateRunning;
 
-    switch(GetParseTreeType(ParseTree))
+    switch(ParseTree->Type)
     {
     case ParseTreeTypeTextMatch:
     {
@@ -234,15 +237,21 @@ ResetParseTree(parse_tree *ParseTree)
 }
 
 static void
-StepParseTree(parse_tree *ParseTree, u8 Character)
+StepParseTree(parser *Parser, parse_tree *ParseTree, buffer *Buffer)
 {
+    IndentationCount += IndentationSize;
+    u8 Character = Buffer->Data[Parser->Index];
+    PrintIndentation();
+    printf("%c %s\n", Character, DisplayParseTreeType(ParseTree));
     if((ParseTree->Repeat < 0) && (Character == ParseTree->RepeatEndChar))
     {
-        SetParseTreeState(ParseTree, ParseTreeStateSuccess);
+        printf("    RepeatEndChar %c\n", Character);
+        ParseTree->State =  ParseTreeStateSuccess;
+        IndentationCount -= IndentationSize;
         return;
     }
 
-    switch(GetParseTreeType(ParseTree))
+    switch(ParseTree->Type)
     {
     case ParseTreeTypeTextMatch:
     {
@@ -254,12 +263,12 @@ StepParseTree(parse_tree *ParseTree, u8 Character)
 
             if(GetTextMatchCharacter(ParseTree->Value.TextMatch) == '\0')
             {
-                SetParseTreeState(ParseTree, ParseTreeStateSuccess);
+                ParseTree->State =  ParseTreeStateSuccess;
             }
         }
         else
         {
-            SetParseTreeState(ParseTree, ParseTreeStateError);
+            ParseTree->State =  ParseTreeStateError;
         }
     } break;
 
@@ -283,11 +292,11 @@ StepParseTree(parse_tree *ParseTree, u8 Character)
 
         if (Match)
         {
-            SetParseTreeState(ParseTree, ParseTreeStateSuccess);
+            ParseTree->State =  ParseTreeStateSuccess;
         }
         else
         {
-            SetParseTreeState(ParseTree, ParseTreeStateError);
+            ParseTree->State =  ParseTreeStateError;
         }
     } break;
 
@@ -296,11 +305,11 @@ StepParseTree(parse_tree *ParseTree, u8 Character)
         if((Character >= ParseTree->Value.CharRange->Begin &&
             Character <= ParseTree->Value.CharRange->End))
         {
-            SetParseTreeState(ParseTree, ParseTreeStateSuccess);
+            ParseTree->State =  ParseTreeStateSuccess;
         }
         else
         {
-            SetParseTreeState(ParseTree, ParseTreeStateError);
+            ParseTree->State =  ParseTreeStateError;
         }
     } break;
 
@@ -312,23 +321,24 @@ StepParseTree(parse_tree *ParseTree, u8 Character)
         {
             parse_tree *Node = GetParseTreeNode(ParseTree, Index);
 
-            if(GetParseTreeState(Node) == ParseTreeStateError)
+            if(Node->State == ParseTreeStateError)
             {
-                SetParseTreeState(ParseTree, ParseTreeStateError);
+                ParseTree->State =  ParseTreeStateError;
                 AllSuccess = False;
                 break;
             }
-            else if(GetParseTreeState(Node) == ParseTreeStateRunning)
+            else if(Node->State == ParseTreeStateRunning)
             {
-                StepParseTree(Node, Character);
+                StepParseTree(Parser, Node, Buffer);
                 AllSuccess = False;
                 break;
             }
+
         }
 
         if(AllSuccess)
         {
-            SetParseTreeState(ParseTree, ParseTreeStateSuccess);
+            ParseTree->State =  ParseTreeStateSuccess;
         }
     } break;
 
@@ -340,18 +350,18 @@ StepParseTree(parse_tree *ParseTree, u8 Character)
         {
             parse_tree *Node = GetParseTreeNode(ParseTree, Index);
 
-            if(GetParseTreeState(Node) == ParseTreeStateRunning)
+            if(Node->State == ParseTreeStateRunning)
             {
-                StepParseTree(Node, Character);
+                StepParseTree(Parser, Node, Buffer);
             }
 
-            if(GetParseTreeState(Node) == ParseTreeStateSuccess)
+            if(Node->State == ParseTreeStateSuccess)
             {
-                SetParseTreeState(ParseTree, ParseTreeStateSuccess);
+                ParseTree->State =  ParseTreeStateSuccess;
                 AllError = False;
                 break;
             }
-            else if(GetParseTreeState(Node) != ParseTreeStateError)
+            else if(Node->State != ParseTreeStateError)
             {
                 AllError = False;
             }
@@ -359,18 +369,18 @@ StepParseTree(parse_tree *ParseTree, u8 Character)
 
         if(AllError)
         {
-            SetParseTreeState(ParseTree, ParseTreeStateError);
+            ParseTree->State =  ParseTreeStateError;
         }
     } break;
 
     default:
     {
         Log("Error: ParseTree state default case error\n");
-        SetParseTreeState(ParseTree, ParseTreeStateError);
+        ParseTree->State =  ParseTreeStateError;
     } break;
     }
 
-    if(GetParseTreeState(ParseTree) == ParseTreeStateSuccess)
+    if(ParseTree->State == ParseTreeStateSuccess)
     {
         ParseTree->RepeatCount = ParseTree->RepeatCount + 1;
     }
@@ -379,6 +389,7 @@ StepParseTree(parse_tree *ParseTree, u8 Character)
     {
         ResetParseTree(ParseTree);
     }
+    IndentationCount -= IndentationSize;
 }
 
 static parse_tree
@@ -403,7 +414,7 @@ CreateStringLiteralParseTree()
     AndNodes[0] = CreateCharSetParseTree("\"", 0);
     AndNodes[1] = CreateCharSetParseTree("\"", 1);
     AndNodes[1].Repeat = -1;
-    AndNodes[1].RepeatEndChar = '\"';
+    AndNodes[1].RepeatEndChar = '"';
     parse_tree Result = CreateAndParseTree(2, AndNodes);
 
     return Result;
@@ -412,13 +423,24 @@ CreateStringLiteralParseTree()
 parse_tree
 CreateIdiParseTree()
 {
-    parse_tree Result;
-
-    parse_tree *BindSetNodes = malloc(sizeof(parse_tree) * 3);
+    parse_tree *BindSetNodes = malloc(sizeof(parse_tree) * 2);
     BindSetNodes[0] = CreateTextMatchParseTree("set");
+    /* BindSetNodes[0].ConsumeWhitespace = 1; */
+        /* BindSetNodes[2] = CreateTitleStringParseTree(); */
+
     BindSetNodes[1] = CreateTitleStringParseTree();
-    BindSetNodes[2] = CreateStringLiteralParseTree();
-    parse_tree Binding = CreateAndParseTree(3, BindSetNodes);
+    /* BindSetNodes[1].ConsumeWhitespace = 1; */
+
+    /* BindSetNodes[1] = CreateStringLiteralParseTree(); */
+
+    /* BindSetNodes[0] = CreateStringLiteralParseTree(); */
+    /* BindSetNodes[0] = CreateTextMatchParseTree("set"); */
+    /* BindSetNodes[1] = CreateCharSetParseTree(" \n\r\t", 0); */
+    /* BindSetNodes[2] = CreateTitleStringParseTree(); */
+    /* BindSetNodes[3] = CreateCharSetParseTree(" \n\r\t", 0); */
+    /* BindSetNodes[4] = CreateStringLiteralParseTree(); */
+    parse_tree Result = CreateAndParseTree(2, BindSetNodes);
+    /* parse_tree Result = CreateStringLiteralParseTree(); */
 
     return Result;
 }
@@ -451,6 +473,15 @@ CreateDebugRepeatParseTree()
     return Result;
 }
 
+static void
+ConsumeWhitespace(parser *Parser, buffer *Buffer)
+{
+    while(CharIsSpace(Buffer->Data[Parser->Index]))
+    {
+        Parser->Index++;
+    }
+}
+
 parse_tree
 ParseBuffer(buffer *Buffer)
 {
@@ -459,7 +490,8 @@ ParseBuffer(buffer *Buffer)
     /* parse_tree ParseTree = CreateCharSetParseTree("abcd", 0); */
     /* parse_tree ParseTree = CreateTitleStringParseTree(); */
     /* parse_tree ParseTree = CreateDebugRepeatParseTree(); */
-    parse_tree ParseTree = CreateStringLiteralParseTree();
+    /* parse_tree ParseTree = CreateStringLiteralParseTree(); */
+    parse_tree ParseTree = CreateIdiParseTree();
 
     parser Parser = {0};
 
@@ -467,26 +499,30 @@ ParseBuffer(buffer *Buffer)
     u32 Iter = 0;
 
     Log("begin parse loop\n");
-    while(GetParseTreeState(&ParseTree) == ParseTreeStateRunning && (Iter++ < MaxIterCount))
+    while(ParseTree.State == ParseTreeStateRunning && (Iter++ < MaxIterCount))
     {
         if(Parser.Index >= Buffer->Size)
         {
-            if(GetParseTreeState(&ParseTree) != ParseTreeStateSuccess)
+            if(ParseTree.State != ParseTreeStateSuccess)
             {
-                SetParseTreeState(&ParseTree, ParseTreeStateError);
+                ParseTree.State =  ParseTreeStateError;
             }
         }
         else if(Iter == MaxIterCount)
         {
             Log("\nMax iterations\n");
-            SetParseTreeState(&ParseTree, ParseTreeStateError);
+            ParseTree.State =  ParseTreeStateError;
         }
         else
         {
-            StepParseTree(&ParseTree, Buffer->Data[Parser.Index]);
+            StepParseTree(&Parser, &ParseTree, Buffer);
             ++Parser.Index;
+
         }
     }
+
+    for(size I = 0; I < Parser.Index; I++) { printf("%c", Buffer->Data[I]); }
+    printf("\n");
 
     return ParseTree;
 }
