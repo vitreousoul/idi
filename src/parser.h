@@ -42,7 +42,8 @@ typedef struct parse_tree
     parse_tree_type Type;
     parse_tree_state State;
     u32 NodeCount;
-    i32 Repeat;
+    u32 RepeatMin;
+    u32 RepeatMax;
     u32 RepeatCount;
     u8 RepeatEndChar;
     b32 ConsumeWhitespace;
