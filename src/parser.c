@@ -1,15 +1,3 @@
-// TODO: we need a better implementation of repeat for parse_trees. It should be like regex
-// where you repeat until you fail.
-//     * Can fail or repeat, if any success, repeat till failure but ultimately succeed
-//     + Must succeed once, then repeats until failure, but should be successful overall
-//
-//     * {0, -1}
-//     ? {0, 1}
-//     + {1, -1}
-//
-// TODO: convert ConsumeWhitespace into a parse_tree: CreateCharSetNode(" \n\r\t", 0) with *-repeat
-//
-//
 #define ArrayItemSize(Array) (sizeof(Array[0]))
 #define ArrayCount(Array) (sizeof(Array) / ArrayItemSize(Array))
 
@@ -33,15 +21,6 @@ static void
 Log(const char *Message)
 {
     printf("%s\n", Message);
-}
-
-static void
-PrintIndentation()
-{
-    for(u32 I = 0; I < IndentationCount; I++)
-    {
-        printf(" ");
-    }
 }
 
 static text_match_node *
@@ -250,11 +229,9 @@ StepParseTree(parser *Parser, parse_tree *ParseTree, buffer *Buffer)
 {
     IndentationCount += IndentationSize;
     u8 Character = Buffer->Data[Parser->Index];
-    PrintIndentation();
-    printf("%c %s\n", Character, DisplayParseTreeType(ParseTree));
+
     if((ParseTree->RepeatMin < 0) && (Character == ParseTree->RepeatEndChar))
     {
-        printf("    RepeatEndChar %c\n", Character);
         ParseTree->State =  ParseTreeStateSuccess;
         IndentationCount -= IndentationSize;
         return;
@@ -385,8 +362,13 @@ StepParseTree(parser *Parser, parse_tree *ParseTree, buffer *Buffer)
     default:
     {
         Log("Error: ParseTree state default case error\n");
-        ParseTree->State =  ParseTreeStateError;
+        ParseTree->State = ParseTreeStateError;
     } break;
+    }
+
+    if(ParseTree->State == ParseTreeStateError && ParseTree->RepeatMin == 0)
+    {
+        ParseTree->State = ParseTreeStateSuccess;
     }
 
     if(ParseTree->State == ParseTreeStateSuccess)
@@ -398,7 +380,6 @@ StepParseTree(parser *Parser, parse_tree *ParseTree, buffer *Buffer)
     {
         ResetParseTree(ParseTree);
     }
-    IndentationCount -= IndentationSize;
 }
 
 static parse_tree
@@ -408,6 +389,8 @@ CreateTitleStringParseTree()
     AlphaNodes[0] = CreateCharRangeParseTree('A', 'Z');
     AlphaNodes[1] = CreateCharRangeParseTree('a', 'z');
     parse_tree AlphaParseTree = CreateOrParseTree(2, AlphaNodes);
+    AlphaParseTree.RepeatMin = 0;
+    AlphaParseTree.RepeatMax = ~0;
     parse_tree *ResultNodes = malloc(sizeof(parse_tree) * 2);
     ResultNodes[0] = CreateCharRangeParseTree('A', 'Z');
     ResultNodes[1] = AlphaParseTree;
@@ -497,10 +480,10 @@ ParseBuffer(buffer *Buffer)
     // TODO: free stuff we malloced in here >:(  !!!!!
     /* parse_tree ParseTree = CreateDebugParseTree(); */
     /* parse_tree ParseTree = CreateCharSetParseTree("abcd", 0); */
-    /* parse_tree ParseTree = CreateTitleStringParseTree(); */
+    parse_tree ParseTree = CreateTitleStringParseTree();
     /* parse_tree ParseTree = CreateDebugRepeatParseTree(); */
     /* parse_tree ParseTree = CreateStringLiteralParseTree(); */
-    parse_tree ParseTree = CreateIdiParseTree();
+    /* parse_tree ParseTree = CreateIdiParseTree(); */
 
     parser Parser = {0};
 
