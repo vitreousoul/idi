@@ -65,6 +65,7 @@ CreateTextMatchParseTree(const char *Text)
     Result.RepeatMax = 1;
     Result.RepeatCount = 0;
 
+    Result.HasEntryIndex = 0;
     Result.EntryIndex = 0;
 
     Result.ConsumeWhitespace = 0;
@@ -86,6 +87,7 @@ CreateCharSetParseTree(const char *CharSet, b32 Exclusive)
     Result.RepeatMax = 1;
     Result.RepeatCount = 0;
 
+    Result.HasEntryIndex = 0;
     Result.EntryIndex = 0;
 
     Result.ConsumeWhitespace = 0;
@@ -107,6 +109,7 @@ CreateCharRangeParseTree(char Begin, char End)
     Result.RepeatMax = 1;
     Result.RepeatCount = 0;
 
+    Result.HasEntryIndex = 0;
     Result.EntryIndex = 0;
 
     Result.ConsumeWhitespace = 0;
@@ -131,6 +134,7 @@ CreateAndParseTree(u32 NodeCount, parse_tree *Nodes)
     Result.RepeatMax = 1;
     Result.RepeatCount = 0;
 
+    Result.HasEntryIndex = 0;
     Result.EntryIndex = 0;
 
     Result.ConsumeWhitespace = 0;
@@ -152,6 +156,7 @@ CreateOrParseTree(u32 NodeCount, parse_tree *Nodes)
     Result.RepeatMax = 1;
     Result.RepeatCount = 0;
 
+    Result.HasEntryIndex = 0;
     Result.EntryIndex = 0;
 
     Result.ConsumeWhitespace = 0;
@@ -265,6 +270,22 @@ PrintParseTree(parse_tree *ParseTree, u32 Depth)
         printf("%sCharRange %c-%c\n", Indent, ParseTree->Value.CharRange->Begin, ParseTree->Value.CharRange->End);
     } break;
     }
+}
+
+static void
+ConsumeWhitespace(parser *Parser, buffer *Buffer)
+{
+    u32 SpaceCount = 0;
+    while(CharIsSpace(Buffer->Data[Parser->Index]))
+    {
+        ++SpaceCount;
+        ++Parser->Index;
+    }
+    // TODO: fix this decrement hack. it's only here because we always increment the parser
+    // index after calling StepParser in the ParseBuffer loop
+    printf("ConsumeWhitespace stopped at %c\n", Buffer->Data[Parser->Index]);
+    --Parser->Index;
+    printf("Consumed %d space characters\n", SpaceCount);
 }
 
 static void
@@ -466,6 +487,12 @@ StepParseTree(parser *Parser, parse_tree *ParseTree, buffer *Buffer)
         }
     }
 
+    if(ParseTree->State == ParseTreeStateSuccess && ParseTree->ConsumeWhitespace)
+    {
+        Parser->Index++;
+        ConsumeWhitespace(Parser, Buffer);
+    }
+
     IndentationCount -= IndentationSize;
 }
 
@@ -504,10 +531,13 @@ CreateStringLiteralParseTree()
 parse_tree
 CreateIdiParseTree()
 {
-    parse_tree *BindSetNodes = malloc(sizeof(parse_tree) * 2);
+    parse_tree *BindSetNodes = malloc(sizeof(parse_tree) * 3);
     BindSetNodes[0] = CreateTextMatchParseTree("set");
-    BindSetNodes[1] = CreateStringLiteralParseTree();
-    parse_tree Result = CreateAndParseTree(2, BindSetNodes);
+    BindSetNodes[0].ConsumeWhitespace = 1;
+    BindSetNodes[1] = CreateTitleStringParseTree();
+    BindSetNodes[1].ConsumeWhitespace = 1;
+    BindSetNodes[2] = CreateStringLiteralParseTree();
+    parse_tree Result = CreateAndParseTree(3, BindSetNodes);
 
     /* parse_tree Result = CreateStringLiteralParseTree(); */
 
@@ -540,15 +570,6 @@ CreateDebugRepeatParseTree()
     Result.RepeatMin = 3;
 
     return Result;
-}
-
-static void
-ConsumeWhitespace(parser *Parser, buffer *Buffer)
-{
-    while(CharIsSpace(Buffer->Data[Parser->Index]))
-    {
-        Parser->Index++;
-    }
 }
 
 parse_tree
@@ -590,7 +611,7 @@ ParseBuffer(buffer *Buffer)
         }
     }
 
-    PrintParseTree(&ParseTree, 0);
+    /* PrintParseTree(&ParseTree, 0); */
     for(size I = 0; I < Parser.Index; I++) { printf("%c", Buffer->Data[I]); }
     printf("\n");
 
