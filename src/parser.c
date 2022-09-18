@@ -220,6 +220,54 @@ DisplayParseTreeType(parse_tree *ParseTree)
 }
 
 static void
+PrintParseTree(parse_tree *ParseTree, u32 Depth)
+{
+    char Indent[Depth + 1];
+    for (u32 D = 0; D < Depth + 4; D++) Indent[D] = ' ';
+    Indent[Depth] = 0;
+    printf("%sParseTree\n%s{\n%sType %s\n%sState %s\n%sNodeCount %d\n%sRepeatMin %u\n%sRepeatMax %u\n%sRepeatCount %u\n%sHasEntryIndex %u\n%sEntryIndex %lu\n%sConsumeWhitespace %d\n",
+           Indent,
+           Indent,
+           Indent, DisplayParseTreeType(ParseTree),
+           Indent, DisplayParseTreeState(ParseTree),
+           Indent, ParseTree->NodeCount,
+           Indent, ParseTree->RepeatMin,
+           Indent, ParseTree->RepeatMax,
+           Indent, ParseTree->RepeatCount,
+           Indent, ParseTree->HasEntryIndex,
+           Indent, ParseTree->EntryIndex,
+           Indent, ParseTree->ConsumeWhitespace);
+
+    switch(ParseTree->Type)
+    {
+    case ParseTreeTypeTextMatch:
+    {
+        printf("%sTextMatch ", Indent);
+        DebugPrintBuffer(ParseTree->Value.TextMatch->Text);
+        printf("\n");
+    } break;
+    case ParseTreeTypeCharSet:
+    {
+        printf("%sCharSet ", Indent);
+        DebugPrintBuffer(ParseTree->Value.CharSet->Text);
+        printf("\n");
+    } break;
+    case ParseTreeTypeOr:
+    case ParseTreeTypeAnd:
+    {
+     for(size I = 0; I < ParseTree->NodeCount; I++)
+    {
+        PrintParseTree(&ParseTree->Value.Nodes[I], Depth + 4);
+    }
+    } break;
+    case ParseTreeTypeCharRange:
+    {
+        printf("%sCharRange %c-%c\n", Indent, ParseTree->Value.CharRange->Begin, ParseTree->Value.CharRange->End);
+    } break;
+    }
+}
+
+static void
 ResetParseTree(parse_tree *ParseTree)
 {
     ParseTree->State = ParseTreeStateRunning;
@@ -542,6 +590,7 @@ ParseBuffer(buffer *Buffer)
         }
     }
 
+    PrintParseTree(&ParseTree, 0);
     for(size I = 0; I < Parser.Index; I++) { printf("%c", Buffer->Data[I]); }
     printf("\n");
 
