@@ -283,9 +283,7 @@ ConsumeWhitespace(parser *Parser, buffer *Buffer)
     }
     // TODO: fix this decrement hack. it's only here because we always increment the parser
     // index after calling StepParser in the ParseBuffer loop
-    printf("ConsumeWhitespace stopped at %c\n", Buffer->Data[Parser->Index]);
     --Parser->Index;
-    printf("Consumed %d space characters\n", SpaceCount);
 }
 
 static void
@@ -320,11 +318,6 @@ ResetParseTree(parse_tree *ParseTree)
 static void
 StepParseTree(parser *Parser, parse_tree *ParseTree, buffer *Buffer)
 {
-    if(!ParseTree->HasEntryIndex) {
-        ParseTree->HasEntryIndex = 1;
-        ParseTree->EntryIndex = Parser->Index;
-    }
-
     IndentationCount += IndentationSize;
     u8 Character = Buffer->Data[Parser->Index];
     parse_tree_state StartState = ParseTree->State;
@@ -398,7 +391,6 @@ StepParseTree(parser *Parser, parse_tree *ParseTree, buffer *Buffer)
         for(size Index = 0; Index < ParseTree->NodeCount; Index++)
         {
             parse_tree *Node = GetParseTreeNode(ParseTree, Index);
-            PrintIndentation(); printf("and node[%lu]: %c %s %s\n", Index, Character, DisplayParseTreeState(Node), DisplayParseTreeType(Node));
 
             if(Node->State == ParseTreeStateError)
             {
@@ -410,14 +402,16 @@ StepParseTree(parser *Parser, parse_tree *ParseTree, buffer *Buffer)
             {
                 StepParseTree(Parser, Node, Buffer);
 
-                AllSuccess = False;
-                break;
+                if(Index != (ParseTree->NodeCount - 1) || Node->State != ParseTreeStateSuccess)
+                {
+                    AllSuccess = False;
+                    break;
+                }
             }
         }
 
         if(AllSuccess)
         {
-            PrintIndentation(); printf("AllSuccess\n");
             ParseTree->State = ParseTreeStateSuccess;
         }
     } break;
@@ -460,21 +454,19 @@ StepParseTree(parser *Parser, parse_tree *ParseTree, buffer *Buffer)
     } break;
     }
 
-    if(ParseTree->RepeatMin == 0) {
-        PrintIndentation(); printf("RepeatMin == 0 %s %s\n", DisplayParseTreeState(ParseTree), DisplayParseTreeType(ParseTree));
-    }
-
     if(ParseTree->State == ParseTreeStateSuccess)
     {
-        PrintIndentation(); printf("success %u %u\n", ParseTree->RepeatCount, ParseTree->RepeatMax);
-
         ParseTree->RepeatCount = ParseTree->RepeatCount + 1;
 
         if(ParseTree->RepeatCount < ParseTree->RepeatMax)
         {
-            PrintIndentation(); printf("parse tree should repeat\n");
             ParseTree->State = ParseTreeStateRunning;
             ResetParseTree(ParseTree);
+        }
+
+        if(ParseTree->RepeatMin == 0)
+        {
+            ParseTree->EntryIndex = Parser->Index;
         }
     }
     else if(ParseTree->State == ParseTreeStateError)
@@ -482,8 +474,7 @@ StepParseTree(parser *Parser, parse_tree *ParseTree, buffer *Buffer)
         if (ParseTree->RepeatMax > 1)
         {
             ParseTree->State = ParseTreeStateSuccess;
-            PrintIndentation(); printf("backtrack %lu\n", Parser->Index - ParseTree->EntryIndex);
-            Parser->Index = Parser->Index - ParseTree->EntryIndex;
+            Parser->Index -= Parser->Index - ParseTree->EntryIndex;
         }
     }
 
@@ -503,7 +494,6 @@ CreateTitleStringParseTree()
     AlphaNodes[0] = CreateCharRangeParseTree('A', 'Z');
     AlphaNodes[1] = CreateCharRangeParseTree('a', 'z');
     parse_tree AlphaParseTree = CreateOrParseTree(2, AlphaNodes);
-    AlphaParseTree.DebugId = 123456;
     AlphaParseTree.RepeatMin = 0;
     AlphaParseTree.RepeatMax = ~0;
     parse_tree *ResultNodes = malloc(sizeof(parse_tree) * 2);
@@ -607,7 +597,6 @@ ParseBuffer(buffer *Buffer)
         {
             StepParseTree(&Parser, &ParseTree, Buffer);
             ++Parser.Index;
-
         }
     }
 
