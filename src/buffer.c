@@ -18,7 +18,6 @@ GetBufferSubRegion(buffer *Buffer, size Begin, size End)
         for (size Index = Begin; Index < End; Index++)
         {
             Result->Data[Index - Begin] = Buffer->Data[Index];
-            /* printf("Buffer Char Copy: %c\n", Result->Data[Index]); */
         }
     }
 
