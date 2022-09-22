@@ -11,24 +11,9 @@ u32 IndentationCount = 0;
 u32 IndentationSize = 4;
 
 static void
-Error(const char *Message)
-{
-    printf("Error: %s\n", Message);
-    exit(1);
-}
-
-static void
 Log(const char *Message)
 {
     printf("%s\n", Message);
-}
-
-static void
-PrintIndentation()
-{
-    for(u32 Indent = 0; Indent < IndentationCount; Indent++) {
-        printf(" ");
-    }
 }
 
 static text_match_node *
@@ -180,6 +165,7 @@ GetCharSetTextSize(parse_tree *ParseTree)
 }
 
 static char
+GetCharSetChar(parse_tree *ParseTree, size Index)
 {
     char Result = ParseTree->Value.CharSet->Text->Data[Index];
 
@@ -210,7 +196,7 @@ DisplayParseTreeState(parse_tree *ParseTree)
     }
 }
 
-const char *
+static const char *
 DisplayParseTreeType(parse_tree *ParseTree)
 {
     switch(ParseTree->Type)
@@ -271,7 +257,6 @@ StepParseTree(parser *Parser, parse_tree *ParseTree, buffer *Buffer)
 {
     IndentationCount += IndentationSize;
     u8 Character = Buffer->Data[Parser->Index];
-    parse_tree_state StartState = ParseTree->State;
 
     switch(ParseTree->Type)
     {
@@ -469,7 +454,7 @@ CreateStringLiteralParseTree()
     return Result;
 }
 
-parse_tree
+static parse_tree
 CreateIdiParseTree()
 {
     parse_tree *BindSetNodes = malloc(sizeof(parse_tree) * 3);
@@ -479,34 +464,6 @@ CreateIdiParseTree()
     BindSetNodes[1].ConsumeWhitespace = 1;
     BindSetNodes[2] = CreateStringLiteralParseTree();
     parse_tree Result = CreateAndParseTree(3, BindSetNodes);
-
-    return Result;
-}
-
-static parse_tree
-CreateDebugParseTree()
-{
-    parse_tree *FirstNodes = malloc(sizeof(parse_tree) * 2);
-    FirstNodes[0] = CreateTextMatchParseTree("foo");
-    FirstNodes[1] = CreateTextMatchParseTree("bar");
-    parse_tree FirstPartOfOr = CreateAndParseTree(2, FirstNodes);
-    parse_tree SecondPartOfOr = CreateTextMatchParseTree("baz");
-    parse_tree *SecondNodes = malloc(sizeof(parse_tree) * 2);
-    SecondNodes[0] = FirstPartOfOr;
-    SecondNodes[1] = SecondPartOfOr;
-    parse_tree Result = CreateOrParseTree(2, SecondNodes);
-
-    return Result;
-}
-
-static parse_tree
-CreateDebugRepeatParseTree()
-{
-    parse_tree *MatchNodes = malloc(sizeof(parse_tree) * 2);
-    MatchNodes[0] = CreateTextMatchParseTree("foo");
-    MatchNodes[1] = CreateTextMatchParseTree("bar");
-    parse_tree Result = CreateOrParseTree(2, MatchNodes);
-    Result.RepeatMin = 3;
 
     return Result;
 }
