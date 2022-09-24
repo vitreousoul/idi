@@ -1,10 +1,6 @@
 #define ArrayItemSize(Array) (sizeof(Array[0]))
 #define ArrayCount(Array) (sizeof(Array) / ArrayItemSize(Array))
 
-#define CharIsUpperCase(Char) (Char >= 'A' && Char <= 'Z')
-#define CharIsLowerCase(Char) (Char >= 'a' && Char <= 'z')
-#define CharIsDigit(Char) (Char >= '0' && Char <= '9')
-#define CharIsAlphaNum(Char) (CharIsUpperCase(Char) || CharIsLowerCase(Char) || CharIsDigit(Char))
 #define CharIsSpace(Char) ((Char == ' ') || (Char == '\n') || (Char == '\r') || (Char == '\t'))
 
 u32 IndentationCount = 0;
@@ -213,6 +209,7 @@ static void
 ConsumeWhitespace(parser *Parser, buffer *Buffer)
 {
     u32 SpaceCount = 0;
+
     while(CharIsSpace(Buffer->Data[Parser->Index]))
     {
         ++SpaceCount;
