@@ -4,3 +4,4 @@
 #include "types.h"
 #include "buffer.h"
 #include "parser.h"
+#include "platform.h"
