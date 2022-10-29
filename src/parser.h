@@ -201,5 +201,5 @@ typedef struct parser
     size Index;
 } parser;
 
-const char *DisplayParseTreeState(parse_tree *ParseTree);
+char *DisplayParseTreeState(parse_tree *ParseTree);
 parse_tree ParseBuffer(buffer *Buffer);

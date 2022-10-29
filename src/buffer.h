@@ -5,6 +5,6 @@ struct buffer {
 typedef struct buffer buffer;
 
 buffer *CreateBuffer(size Size);
-buffer *BufferFromNullTerminatedString(const char *String);
+buffer *BufferFromNullTerminatedString(char *String);
 buffer *GetBufferSubRegion(buffer *Buffer, size Begin, size End);
 void DebugPrintBuffer(buffer *Buffer);

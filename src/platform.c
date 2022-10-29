@@ -10,7 +10,7 @@ GetFileSize(FILE *File)
 }
 
 buffer *
-ReadFileIntoBuffer(const char *FilePath)
+ReadFileIntoBuffer(char *FilePath)
 {
     FILE *File = fopen(FilePath, "rb");
     size FileSize = GetFileSize(File);
@@ -24,10 +24,28 @@ ReadFileIntoBuffer(const char *FilePath)
 }
 
 void
-WriteBufferToFile(buffer *Buffer, const char *FilePath)
+WriteBufferToFile(buffer *Buffer, char *FilePath)
 {
     FILE *File = fopen(FilePath, "wb");
 
     fwrite(Buffer->Data, sizeof(*Buffer->Data), Buffer->Size, File);
     fclose(File);
+}
+
+void
+PrintLog(char *Type, char *Message)
+{
+    printf("[ %s ] %s\n", Type, Message);
+}
+
+void
+PrintMessage(char *Message)
+{
+    PrintLog("Log", Message);
+}
+
+void
+PrintError(char *Message)
+{
+    PrintLog("Error", Message);
 }

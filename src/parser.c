@@ -1,19 +1,14 @@
-#define ArrayItemSize(Array) (sizeof(Array[0]))
-#define ArrayCount(Array) (sizeof(Array) / ArrayItemSize(Array))
-
-#define CharIsSpace(Char) ((Char == ' ') || (Char == '\n') || (Char == '\r') || (Char == '\t'))
-
 u32 IndentationCount = 0;
 u32 IndentationSize = 4;
 
 static void
-Log(const char *Message)
+Log(char *Message)
 {
     printf("%s\n", Message);
 }
 
 static text_match_node *
-CreateTextMatchNode(const char *Text)
+CreateTextMatchNode(char *Text)
 {
     buffer *BufferText = BufferFromNullTerminatedString(Text);
     text_match_node *Result = malloc(sizeof(text_match_node));
@@ -24,7 +19,7 @@ CreateTextMatchNode(const char *Text)
 }
 
 static char_set_node *
-CreateCharSetNode(const char *CharSet, b32 Exclusive)
+CreateCharSetNode(char *CharSet, b32 Exclusive)
 {
     buffer *BufferText = BufferFromNullTerminatedString(CharSet);
     char_set_node *Result = malloc(sizeof(text_match_node));
@@ -35,7 +30,7 @@ CreateCharSetNode(const char *CharSet, b32 Exclusive)
 }
 
 static parse_tree
-CreateTextMatchParseTree(const char *Text)
+CreateTextMatchParseTree(char *Text)
 {
     parse_tree Result;
     Result.Type = ParseTreeTypeTextMatch;
@@ -57,7 +52,7 @@ CreateTextMatchParseTree(const char *Text)
 }
 
 static parse_tree
-CreateCharSetParseTree(const char *CharSet, b32 Exclusive)
+CreateCharSetParseTree(char *CharSet, b32 Exclusive)
 {
     parse_tree Result;
     Result.Type = ParseTreeTypeCharSet;
@@ -179,30 +174,6 @@ GetTextMatchCharacter(text_match_node *TextMatchNode)
     }
 
     return Result;
-}
-
-const char *
-DisplayParseTreeState(parse_tree *ParseTree)
-{
-    switch(ParseTree->State)
-    {
-    case ParseTreeStateRunning: return "ParseTreeStateRunning";
-    case ParseTreeStateSuccess: return "ParseTreeStateSuccess";
-    case ParseTreeStateError: return "ParseTreeStateError";
-    }
-}
-
-static const char *
-DisplayParseTreeType(parse_tree *ParseTree)
-{
-    switch(ParseTree->Type)
-    {
-    case ParseTreeTypeTextMatch: return "ParseTreeTypeTextMatch";
-    case ParseTreeTypeCharSet: return "ParseTreeTypeCharSet";
-    case ParseTreeTypeCharRange: return "ParseTreeTypeCharRange";
-    case ParseTreeTypeAnd: return "ParseTreeTypeAnd";
-    case ParseTreeTypeOr: return "ParseTreeTypeOr";
-    }
 }
 
 static void
@@ -472,7 +443,7 @@ ParseBuffer(buffer *Buffer)
 
     parser Parser = {0};
 
-    const u32 MaxIterCount = 1000;
+    u32 MaxIterCount = 1000;
     u32 Iter = 0;
 
     Log("begin parse loop\n");
