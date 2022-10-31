@@ -52,14 +52,20 @@ ParseSpace(buffer *Buffer, json_parser *Parser)
 }
 
 static void
-ParseKeyword(buffer *Buffer, json_parser *Parser, u8 *Keyword)
+ParseKeyword(buffer *Buffer, json_parser *Parser, char *Keyword)
 {
     u32 KeywordIndex = 0;
     b32 Matched = True;
+    u32 DEBUG_Iterations = 0;
 
     for(;;)
     {
-        if(CharIsNullChar(GetChar(Buffer, Parser)))
+        if(DEBUG_Iterations++ > 32)
+        {
+            PrintError("ParseKeyword max iter\n");
+            break;
+        }
+        else if(CharIsNullChar(Keyword[KeywordIndex]))
         {
             break;
         }
@@ -86,6 +92,7 @@ ParseString(buffer *Buffer, json_parser *Parser)
     json_token_range Result;
     Result.Start = Parser->Index;
     Result.End = Result.Start;
+    u32 DEBUG_Iterations = 0;
 
     if(GetChar(Buffer, Parser) == '"')
     {
@@ -93,14 +100,25 @@ ParseString(buffer *Buffer, json_parser *Parser)
 
         for(;;)
         {
-            if(GetChar(Buffer, Parser) == '"')
+            DEBUG_Iterations++;
+            if(Parser->Index >= Buffer->Size)
+            {
+                break;
+            }
+            else if(DEBUG_Iterations > 1000)
+            {
+                PrintError("ParseString max iter");
+                break;
+            }
+            else if(GetChar(Buffer, Parser) == '"')
             {
                 Result.End = Parser->Index;
                 break;
             }
-            else if(GetChar(Buffer, Parser) == '\\')
+            else
             {
-                Parser->Index++;
+                size Increment = GetChar(Buffer, Parser) == '\\' ? 2 : 1;
+                Parser->Index += Increment;
             }
         }
     }
@@ -117,7 +135,7 @@ ParseBoolean(buffer *Buffer, json_parser *Parser)
     {
     case 't':
     {
-        ParseKeyword(Buffer, Parser, (u8 *)"true");
+        ParseKeyword(Buffer, Parser, "true");
 
         if(Parser->State != json_parser_state_Error)
         {
@@ -126,7 +144,7 @@ ParseBoolean(buffer *Buffer, json_parser *Parser)
     } break;
     case 'f':
     {
-        ParseKeyword(Buffer, Parser, (u8 *)"false");
+        ParseKeyword(Buffer, Parser, "false");
 
         if(Parser->State != json_parser_state_Error)
         {
@@ -152,11 +170,6 @@ ParseNumber(buffer *Buffer, json_parser *Parser)
     for(;;)
     {
         if(Iter++ > 32) { PrintError("ParseNumber max iter"); break; }
-
-        if(CharIsDigit(GetChar(Buffer, Parser)))
-        {
-            printf("%c is digit\n", GetChar(Buffer, Parser));
-        }
 
         if(Parser->Index >= Buffer->Size)
         {
@@ -192,12 +205,16 @@ ParseJson(buffer *Buffer)
     int DEBUG_MaxIterations = 1000;
 
     while((Parser.State == json_parser_state_Running) &&
-          (DEBUG_Iterations++ < DEBUG_MaxIterations) &&
-          (Parser.Index < Buffer->Size))
+          (DEBUG_Iterations++ < DEBUG_MaxIterations))
     {
         ParseSpace(Buffer, &Parser);
 
-        printf("char %c\n", Buffer->Data[Parser.Index]);
+        if(Parser.Index >= Buffer->Size)
+        {
+            // end of buffer
+            break;
+        }
+
         switch(Buffer->Data[Parser.Index])
         {
         case '{':
@@ -239,7 +256,7 @@ ParseJson(buffer *Buffer)
                 ParserError(&Parser, "Invalid string token range");
             }
 
-            AppendList(Last, json_token_type_String, Range);
+            Last = AppendList(Last, json_token_type_String, Range);
             Parser.Index++;
         } break;
         default:
@@ -273,7 +290,7 @@ ParseJson(buffer *Buffer)
             }
             else
             {
-                printf("default error\n");
+                PrintError("default error\n");
                 Parser.State = json_parser_state_Error;
             }
         } break;

@@ -1,1 +1,1 @@
-set Foo "bar"
+{ "foo": true, [ 123, "bar" ] }

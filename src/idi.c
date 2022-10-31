@@ -8,7 +8,9 @@
 int main()
 {
     int Result = 0;
-    buffer *Source = BufferFromNullTerminatedString("[ 123, 432 ]");
+    // TODO: read from file so we can test parsing strings without have to remove escapes
+    buffer *Source = ReadFileIntoBuffer("./idi.idi");
+    /* buffer *Source = BufferFromNullTerminatedString("{ 123, \"foo\": true }"); */
     json_token_list *Tokens = ParseJson(Source);
 
     while(Tokens != 0)
