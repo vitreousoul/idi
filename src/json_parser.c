@@ -13,6 +13,16 @@ CreateTokenListHead()
     return(Result);
 }
 
+static json_tree *
+CreateTreeRoot()
+{
+    json_tree *Result = malloc(sizeof(json_tree));
+    Result->Type = json_tree_type_Root;
+    Result->Value.Children = 0;
+
+    return(Result);
+}
+
 static json_token_list *
 AppendList(json_token_list *List, json_token_type Type, json_token_range Range)
 {
@@ -195,8 +205,8 @@ ParseNumber(buffer *Buffer, json_parser *Parser)
     return(Result);
 }
 
-json_token_list *
-ParseJson(buffer *Buffer)
+static json_token_list *
+ParseJsonBuffer(buffer *Buffer)
 {
     json_token_list *Result = CreateTokenListHead();
     json_token_list *Last = Result;
@@ -301,6 +311,87 @@ ParseJson(buffer *Buffer)
     {
         PrintError("Max Iterations");
     }
+
+    return(Result);
+}
+
+static json_tree *
+ParseJsonTokens(json_tree *Root, json_token_list *Token)
+{
+    // NOTE: we leak memory any time we set Result to 0 and not free the list
+    json_tree *Result = Root;
+    json_tree *CurrentNode = Result;
+
+    while(Token != 0 && Result != 0)
+    {
+        switch(Token->Type)
+        {
+        case json_token_type_String:
+        case json_token_type_Number:
+        case json_token_type_True:
+        case json_token_type_False:
+        case json_token_type_Array:
+        case json_token_type_Object:
+        {
+        } break;
+        case json_token_type_OpenSquare:
+        {
+            json_tree *Array = malloc(sizeof(json_tree));
+            json_tree *LastChild = Array->Value.Children;
+            json_parser_array_state State = json_parser_array_state_Value;
+
+            while(Token != 0)
+            {
+                if(Token->Type == json_token_type_CloseSquare)
+                {
+                    if(CurrentNode->Value.Children)
+                    {
+                        CurrentNode->Value.Children->Next = Array;
+                    }
+                    else
+                    {
+
+                    }
+                    break;
+                }
+                else if(State == json_parser_array_state_Value)
+                {
+                    json_tree *Child = ParseJsonTokens(CurrentNode, Token);
+                    LastChild->Next = Child;
+                    LastChild = Child;
+                    State = json_parser_array_state_Comma;
+                }
+                else if((State == json_parser_array_state_Comma) &&
+                        (Token->Type == json_token_type_Comma))
+                {
+                    State = json_parser_array_state_Value;
+                }
+                else
+                {
+                    PrintError("ParseJsonTokens unexpected token while parsing array");
+                    Result = 0;
+                }
+            }
+        } break;
+        default:
+        {
+            PrintError("ParseJsonTokens token read error");
+            Result = 0;
+        }
+        }
+
+        Token = Token->Next;
+    }
+
+    return(Result);
+}
+
+json_tree *
+ParseJson(buffer *Buffer)
+{
+    json_token_list *Tokens = ParseJsonBuffer(Buffer);
+    json_tree *Root = CreateTreeRoot();
+    json_tree *Result = ParseJsonTokens(Root, Tokens);
 
     return(Result);
 }
