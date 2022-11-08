@@ -13,18 +13,8 @@ CreateTokenListHead()
     return(Result);
 }
 
-static json_tree *
-CreateTreeRoot()
-{
-    json_tree *Result = malloc(sizeof(json_tree));
-    Result->Type = json_tree_type_Root;
-    Result->Value.Children = 0;
-
-    return(Result);
-}
-
 static json_token_list *
-AppendList(json_token_list *List, json_token_type Type, json_token_range Range)
+AppendList(json_token_list *List, json_token_type Type, json_buffer_range Range)
 {
     json_token_list *Result = malloc(sizeof(json_token_list));
     Result->Type = Type;
@@ -39,7 +29,7 @@ AppendList(json_token_list *List, json_token_type Type, json_token_range Range)
 static json_token_list*
 AppendListWithTokenType(json_token_list *List, json_token_type Type)
 {
-    json_token_range Range = {0,0};
+    json_buffer_range Range = {0,0};
     json_token_list *Result = AppendList(List, Type, Range);
 
     return(Result);
@@ -96,10 +86,10 @@ ParseKeyword(buffer *Buffer, json_parser *Parser, char *Keyword)
     }
 }
 
-static json_token_range
+static json_buffer_range
 ParseString(buffer *Buffer, json_parser *Parser)
 {
-    json_token_range Result;
+    json_buffer_range Result;
     Result.Start = Parser->Index;
     Result.End = Result.Start;
     u32 DEBUG_Iterations = 0;
@@ -158,7 +148,7 @@ ParseBoolean(buffer *Buffer, json_parser *Parser)
 
         if(Parser->State != json_parser_state_Error)
         {
-            Result = json_token_type_True;
+            Result = json_token_type_False;
         }
     } break;
     default:
@@ -170,10 +160,10 @@ ParseBoolean(buffer *Buffer, json_parser *Parser)
     return(Result);
 }
 
-static json_token_range
+static json_buffer_range
 ParseNumber(buffer *Buffer, json_parser *Parser)
 {
-    json_token_range Result = {Parser->Index, Parser->Index};
+    json_buffer_range Result = {Parser->Index, Parser->Index};
     b32 PreFloatPoint = True;
     u32 Iter = 0;
 
@@ -259,7 +249,7 @@ ParseJsonBuffer(buffer *Buffer)
         } break;
         case '"':
         {
-            json_token_range Range = ParseString(Buffer, &Parser);
+            json_buffer_range Range = ParseString(Buffer, &Parser);
 
             if(Range.End == Range.Start)
             {
@@ -273,7 +263,7 @@ ParseJsonBuffer(buffer *Buffer)
         {
             // TODO: break up the logic for numbers and booleans
             json_token_type TokenType = json_token_type_Empty;
-            json_token_range TokenRange = {0,0};
+            json_buffer_range TokenRange = {0,0};
 
             if(CharIsDigit(Buffer->Data[Parser.Index]))
             {
@@ -315,26 +305,165 @@ ParseJsonBuffer(buffer *Buffer)
     return(Result);
 }
 
-static json_tree *
-ParseJsonTokens(json_tree *Root, json_token_list *Token)
+static json_value *
+ParseJsonTokens(json_token_parser *Parser)
 {
-    json_tree *Result = Root;
+    json_value *Result = malloc(sizeof(json_value));
+    b32 Running = True;
 
-    while(Token != 0)
+    while(Running && Parser->Token != 0)
     {
-        printf("%s\n", GetJsonTokenTypeString(Token->Type));
-        Token = Token->Next;
+        switch(Parser->Token->Type)
+        {
+        case json_token_type_True:
+        {
+            Result->Type = json_value_Boolean;
+            Result->Value.Boolean = True;
+            Parser->Token = Parser->Token->Next;
+            Running = False;
+        } break;
+        case json_token_type_False:
+        {
+            Result->Type = json_value_Boolean;
+            Result->Value.Boolean = False;
+            Parser->Token = Parser->Token->Next;
+            Running = False;
+        } break;
+        case json_token_type_OpenCurly:
+        {
+            Result->Type = json_value_Object;
+            typedef enum state { Key, Value } state;
+            state State = Key;
+            json_object *CurrentItem = malloc(sizeof(json_object));
+            CurrentItem->Value = 0;
+            CurrentItem->Next = 0;
+            json_object *FirstItem = CurrentItem;
+            Parser->Token = Parser->Token->Next;
+
+            while(Running && Parser->Token != 0)
+            {
+                switch(State)
+                {
+                case Key: {
+                    switch(Parser->Token->Type)
+                    {
+                    case json_token_type_String:
+                    {
+                        CurrentItem->Key = Parser->Token->Range;
+                        Parser->Token = Parser->Token->Next;
+
+                        if(Parser->Token && Parser->Token->Type == json_token_type_Colon)
+                        {
+                            State = Value;
+                            Parser->Token = Parser->Token->Next;
+                        }
+                        else
+                        {
+                            PrintError("Expected colon after key in json object");
+                            Result = 0;
+                            Running = False;
+                            break;
+                        }
+                    } break;
+                    default: {
+                        PrintError("Expected string for json object key");
+                        Result = 0;
+                        Running = False;
+                        break;
+                    }
+                    }
+                } break;
+                case Value: {
+                    CurrentItem->Value = ParseJsonTokens(Parser);
+                    json_object *NextItem = malloc(sizeof(json_object));
+                    NextItem->Value = 0;
+                    NextItem->Next = 0;
+                    CurrentItem->Next = NextItem;
+                    CurrentItem = NextItem;
+
+                    if(Parser->Token && Parser->Token->Type == json_token_type_Comma)
+                    {
+                        Parser->Token = Parser->Token->Next;
+                        State = Key;
+                    }
+                    else if(Parser->Token && Parser->Token->Type == json_token_type_CloseCurly)
+                    {
+                        Running = False;
+                        Parser->Token = Parser->Token->Next;
+                        Result->Value.Object = FirstItem;
+                    }
+                    else
+                    {
+                        PrintError("Unexpected token while parsing json object after value");
+                        Running = False;
+                    }
+                } break;
+                }
+            }
+        } break;
+        case json_token_type_CloseCurly:
+        {
+            Running = False;
+        } break;
+        default:
+        {
+            PrintError("Unexpected token while parsing json value");
+            Running = False;
+        }
+        }
     }
 
     return(Result);
 }
 
-json_tree *
+static void
+PrintJsonValue(json_value *Value, u32 Depth)
+{
+    if(Value == 0)
+    {
+        return;
+    }
+    for(u32 I = 0; I < Depth; I++) printf(" ");
+    switch(Value->Type)
+    {
+    case json_value_String: { printf("String\n"); } break;
+    case json_value_Number: { printf("Number\n"); } break;
+    case json_value_Boolean: { printf("Boolean\n"); } break;
+    case json_value_Object:
+    {
+        json_object *Object = Value->Value.Object;
+        printf("Object\n");
+        while(Object && Object->Value)
+        {
+            PrintJsonValue(Object->Value, Depth + 4);
+            Object = Object->Next;
+        }
+    } break;
+    case json_value_Array:
+    {
+        json_array *Array = Value->Value.Array;
+        while(Array)
+        {
+            PrintJsonValue(Array->Value, Depth + 4);
+            Array = Array->Next;
+        }
+    }
+    }
+}
+
+json_value *
 ParseJson(buffer *Buffer)
 {
-    json_token_list *Tokens = ParseJsonBuffer(Buffer);
-    json_tree *Root = CreateTreeRoot();
-    json_tree *Result = ParseJsonTokens(Root, Tokens);
+    json_token_list *Token = ParseJsonBuffer(Buffer);
+    if(Token && Token->Type == json_token_type_Empty && Token->Next)
+    {
+        Token = Token->Next;
+    }
+    json_token_parser Parser;
+    Parser.Token = Token;
+
+    json_value *Result = ParseJsonTokens(&Parser);
+    PrintJsonValue(Result, 0);
 
     return(Result);
 }

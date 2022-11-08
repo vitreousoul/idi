@@ -12,46 +12,56 @@ typedef enum json_token_type
     json_token_type_Number,
     json_token_type_True,
     json_token_type_False,
-
-    json_token_type_Array,
-    json_token_type_Object,
 } json_token_type;
 
-typedef struct json_token_range
+typedef struct json_buffer_range
 {
     size Start;
     size End;
-} json_token_range;
+} json_buffer_range;
 
 typedef struct json_token_list
 {
     json_token_type Type;
-    json_token_range Range;
+    json_buffer_range Range;
     struct json_token_list *Next;
 } json_token_list;
 
-typedef enum json_tree_type
+typedef enum json_value_type
 {
-    json_tree_type_Root,
-    json_tree_type_True,
-    json_tree_type_False,
-    json_tree_type_String,
-    json_tree_type_Number,
-    json_tree_type_Array,
-    json_tree_type_Object,
-} json_tree_type;
+    json_value_Object,
+    json_value_Array,
+    json_value_String,
+    json_value_Number,
+    json_value_Boolean,
+} json_value_type;
 
-typedef struct json_tree
+typedef struct json_value json_value;
+
+typedef struct json_object
 {
-    json_tree_type Type;
+    json_buffer_range Key;
+    json_value *Value;
+    struct json_object *Next;
+} json_object;
+
+typedef struct json_array
+{
+    json_value *Value;
+    struct json_array *Next;
+} json_array;
+
+struct json_value
+{
+    json_value_type Type;
     union
     {
         b32 Boolean;
-        json_token_range Range;
-        struct json_tree *Children;
+        f32 Number;
+        json_object *Object;
+        json_array *Array;
     } Value;
-    struct json_tree *Next;
-} json_tree;
+};
 
 typedef enum json_parser_state
 {
@@ -72,7 +82,23 @@ typedef struct json_parser
     json_parser_state State;
 } json_parser;
 
-json_tree *ParseJson(buffer *Buffer);
+typedef enum json_parse_stack_item_state
+{
+    json_parse_stack_item_state_Initial,
+    json_parse_stack_item_state_ObjectKey,
+    json_parse_stack_item_state_ObjectValue,
+    json_parse_stack_item_state_ObjectRepeat,
+    json_parse_stack_item_state_ArrayKey,
+    json_parse_stack_item_state_ArrayValue,
+} json_parse_stack_item_state;
+
+typedef struct json_token_parser
+{
+    json_token_list *Token;
+} json_token_parser;
+
+
+json_value *ParseJson(buffer *Buffer);
 char *GetJsonTokenTypeString(json_token_type Type);
 
 char *
@@ -91,7 +117,5 @@ GetJsonTokenTypeString(json_token_type Type)
     case json_token_type_Number: { return "Number"; } break;
     case json_token_type_True: { return "True"; } break;
     case json_token_type_False: { return "False"; } break;
-    case json_token_type_Array: { return "Array"; } break;
-    case json_token_type_Object: { return "Object"; } break;
     }
 }
