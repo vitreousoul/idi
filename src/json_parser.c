@@ -401,10 +401,6 @@ ParseJsonTokens(json_token_parser *Parser)
                 }
             }
         } break;
-        case json_token_type_CloseCurly:
-        {
-            Running = False;
-        } break;
         default:
         {
             PrintError("Unexpected token while parsing json value");
