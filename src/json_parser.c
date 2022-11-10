@@ -56,16 +56,10 @@ ParseKeyword(buffer *Buffer, json_parser *Parser, char *Keyword)
 {
     u32 KeywordIndex = 0;
     b32 Matched = True;
-    u32 DEBUG_Iterations = 0;
 
     for(;;)
     {
-        if(DEBUG_Iterations++ > 32)
-        {
-            PrintError("ParseKeyword max iter\n");
-            break;
-        }
-        else if(CharIsNullChar(Keyword[KeywordIndex]))
+        if(CharIsNullChar(Keyword[KeywordIndex]))
         {
             break;
         }
@@ -92,7 +86,6 @@ ParseString(buffer *Buffer, json_parser *Parser)
     json_buffer_range Result;
     Result.Start = Parser->Index;
     Result.End = Result.Start;
-    u32 DEBUG_Iterations = 0;
 
     if(GetChar(Buffer, Parser) == '"')
     {
@@ -100,14 +93,8 @@ ParseString(buffer *Buffer, json_parser *Parser)
 
         for(;;)
         {
-            DEBUG_Iterations++;
             if(Parser->Index >= Buffer->Size)
             {
-                break;
-            }
-            else if(DEBUG_Iterations > 1000)
-            {
-                PrintError("ParseString max iter");
                 break;
             }
             else if(GetChar(Buffer, Parser) == '"')
@@ -201,11 +188,8 @@ ParseJsonBuffer(buffer *Buffer)
     json_token_list *Result = CreateTokenListHead();
     json_token_list *Last = Result;
     json_parser Parser = { 0, json_parser_state_Running };
-    int DEBUG_Iterations = 0;
-    int DEBUG_MaxIterations = 1000;
 
-    while((Parser.State == json_parser_state_Running) &&
-          (DEBUG_Iterations++ < DEBUG_MaxIterations))
+    while(Parser.State == json_parser_state_Running)
     {
         ParseSpace(Buffer, &Parser);
 
@@ -295,11 +279,6 @@ ParseJsonBuffer(buffer *Buffer)
             }
         } break;
         }
-    }
-
-    if(DEBUG_Iterations++ >= DEBUG_MaxIterations)
-    {
-        PrintError("Max Iterations");
     }
 
     return(Result);
