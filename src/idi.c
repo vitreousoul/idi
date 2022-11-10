@@ -11,8 +11,7 @@ int main()
     // TODO: read from file so we can test parsing strings without have to remove escapes
     buffer *Source = ReadFileIntoBuffer("./idi.idi");
     /* buffer *Source = BufferFromNullTerminatedString("{ 123, \"foo\": true }"); */
-    json_value *Tree = ParseJson(Source);
-    printf("Tree at %p\n", Tree);
+    ParseJson(Source);
 
-    return Result;
+    return(Result);
 }

@@ -396,8 +396,52 @@ ParseJsonTokens(json_token_parser *Parser)
                     {
                         PrintError("Unexpected token while parsing json object after value");
                         Running = False;
+                        break;
                     }
                 } break;
+                }
+            }
+        } break;
+        case json_token_type_OpenSquare:
+        {
+            Result->Type = json_value_Array;
+            json_array *CurrentItem = malloc(sizeof(json_array));
+            json_array *FirstItem = CurrentItem;
+            Parser->Token = Parser->Token->Next;
+
+            while(Running && Parser->Token != 0)
+            {
+                if(Parser->Token->Type == json_token_type_CloseSquare)
+                {
+                    Running = False;
+                    Parser->Token = Parser->Token->Next;
+                    Result->Value.Array = FirstItem;
+                }
+                else
+                {
+                    CurrentItem->Value = ParseJsonTokens(Parser);
+                    json_array *NextItem = malloc(sizeof(json_array));
+                    NextItem->Value = 0;
+                    NextItem->Next = 0;
+                    CurrentItem->Next = NextItem;
+                    CurrentItem = NextItem;
+
+                    if(Parser->Token && Parser->Token->Type == json_token_type_Comma)
+                    {
+                        Parser->Token = Parser->Token->Next;
+                    }
+                    else if(Parser->Token && Parser->Token->Type == json_token_type_CloseSquare)
+                    {
+                        Parser->Token = Parser->Token->Next;
+                        Running = False;
+                        break;
+                    }
+                    else
+                    {
+                        PrintError("Unexpected token after parsing array value");
+                        Running = False;
+                        break;
+                    }
                 }
             }
         } break;
@@ -438,6 +482,7 @@ PrintJsonValue(json_value *Value, u32 Depth)
     case json_value_Array:
     {
         json_array *Array = Value->Value.Array;
+        printf("Array\n");
         while(Array)
         {
             PrintJsonValue(Array->Value, Depth + 4);
