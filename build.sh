@@ -2,7 +2,8 @@
 
 DEBUG=0
 SOURCE_FILES="src/idi.c"
-SETTINGS="-std=c99 -Wall -Wextra -Wstrict-prototypes -Wold-style-definition -Wmissing-prototypes -Wmissing-declarations -Wdeclaration-after-statement"
+LIBS="`sdl2-config --cflags --libs`"
+SETTINGS="-std=c99 -Wall -Wextra -Wstrict-prototypes -Wold-style-definition -Wmissing-prototypes -Wmissing-declarations"
 
 if [ $DEBUG -eq 0 ]; then
     echo "Optimized build";
@@ -15,4 +16,9 @@ elif [ $DEBUG -eq 2 ]; then
     TARGET="-c -O2"
 fi
 
-gcc $TARGET $SETTINGS $SOURCE_FILES
+echo $TARGET
+echo $SETTINGS
+echo $LIBS
+echo $SOURCE_FILES
+
+gcc $TARGET $SETTINGS $LIBS $SOURCE_FILES

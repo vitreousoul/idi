@@ -1,11 +1,13 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+#include <SDL2/SDL.h>
+
 #include "types.h"
 #include "buffer.h"
-#include "parser.h"
 #include "json_parser.h"
 #include "platform.h"
+#include "gui.h"
 
 #define ArrayItemSize(Array) (sizeof(Array[0]))
 #define ArrayCount(Array) (sizeof(Array) / ArrayItemSize(Array))

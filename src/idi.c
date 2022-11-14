@@ -2,8 +2,8 @@
 
 #include "buffer.c"
 #include "platform.c"
-#include "parser.c"
 #include "json_parser.c"
+#include "gui.c"
 
 int main()
 {
@@ -12,6 +12,8 @@ int main()
     buffer *Source = ReadFileIntoBuffer("./idi.idi");
     /* buffer *Source = BufferFromNullTerminatedString("{ 123, \"foo\": true }"); */
     ParseJson(Source);
+
+    DisplayWindow();
 
     return(Result);
 }
