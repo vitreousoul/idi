@@ -195,7 +195,7 @@ ParseJsonBuffer(buffer *Buffer)
 
         if(Parser.Index >= Buffer->Size)
         {
-            // end of buffer
+            /* end of buffer */
             break;
         }
 
@@ -245,7 +245,7 @@ ParseJsonBuffer(buffer *Buffer)
         } break;
         default:
         {
-            // TODO: break up the logic for numbers and booleans
+            /* TODO: break up the logic for numbers and booleans */
             json_token_type TokenType = json_token_type_Empty;
             json_buffer_range TokenRange = {0,0};
 
@@ -438,11 +438,13 @@ ParseJsonTokens(json_token_parser *Parser)
 static void
 PrintJsonValue(json_value *Value, u32 Depth)
 {
+    u32 I;
+
     if(Value == 0)
     {
         return;
     }
-    for(u32 I = 0; I < Depth; I++) printf(" ");
+    for(I = 0; I < Depth; I++) printf(" ");
     switch(Value->Type)
     {
     case json_value_String: { printf("String\n"); } break;

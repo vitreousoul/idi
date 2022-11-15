@@ -1,6 +1,6 @@
 typedef enum json_token_type
 {
-    // TODO: define explicit enum values once values stop changing
+    /* TODO: define explicit enum values once values stop changing */
     json_token_type_Empty,
     json_token_type_OpenCurly,
     json_token_type_CloseCurly,

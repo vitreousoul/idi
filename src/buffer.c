@@ -13,9 +13,10 @@ buffer *
 GetBufferSubRegion(buffer *Buffer, size Begin, size End)
 {
     buffer *Result = CreateBuffer(End - Begin);
+    size Index;
 
     if (Begin >= 0 && End <= Buffer->Size) {
-        for (size Index = Begin; Index < End; Index++)
+        for (Index = Begin; Index < End; Index++)
         {
             Result->Data[Index - Begin] = Buffer->Data[Index];
         }
@@ -42,8 +43,9 @@ BufferFromNullTerminatedString(char *String)
 {
     size StringLength = NullTerminatedStringLength(String);
     buffer *Result = CreateBuffer(StringLength);
+    size Index;
 
-    for (size Index = 0; String[Index] != '\0'; Index++)
+    for (Index = 0; String[Index] != '\0'; Index++)
     {
         Result->Data[Index] = String[Index];
     }
@@ -54,7 +56,9 @@ BufferFromNullTerminatedString(char *String)
 void
 DebugPrintBuffer(buffer *Buffer)
 {
-    for(size Index = 0; Index < Buffer->Size; Index++)
+    size Index;
+
+    for(Index = 0; Index < Buffer->Size; Index++)
     {
         printf("%c", Buffer->Data[Index]);
     }

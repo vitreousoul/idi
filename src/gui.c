@@ -3,7 +3,18 @@
 
 void DisplayWindow()
 {
-    SDL_Init(SDL_INIT_VIDEO);
+    if (SDL_Init(SDL_INIT_VIDEO) < 0)
+    {
+        PrintError("SDL_Init error");
+    }
+
+    /*
+    if (TTF_Init() < 0)
+    {
+        PrintError("TTF_Init error");
+    }
+    */
+
     SDL_Window *Window = SDL_CreateWindow("idi", 0, 0,
                                           SCREEN_WIDTH, SCREEN_HEIGHT,
                                           SDL_WINDOW_HIDDEN);
@@ -28,5 +39,6 @@ void DisplayWindow()
     }
 
     SDL_DestroyWindow(Window);
+    /* TTF_Quit(); */
     SDL_Quit();
 }
