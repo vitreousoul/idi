@@ -7,6 +7,11 @@ typedef uint16_t u16;
 typedef uint32_t u32;
 
 typedef uint32_t b32;
+typedef enum
+{
+    result_Ok = 0,
+    result_Error = 1,
+} result;
 
 typedef float f32;
 typedef double f64;
