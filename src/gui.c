@@ -8,6 +8,7 @@ char *FONT_PATH = "src/PTMono-Regular.ttf";
 
 static result Init()
 {
+    printf("Init\n");
     result Result = result_Ok;
     int TTFResult;
 
@@ -28,6 +29,7 @@ static result Init()
 
 static void DeInit(SDL_Window *Window, SDL_Renderer *Renderer, cursor Cursor)
 {
+    printf("DeInit\n");
     u32 I;
     for (I = 0; I < Cursor.BufferIndex; I++)
     {
@@ -42,6 +44,7 @@ static void DeInit(SDL_Window *Window, SDL_Renderer *Renderer, cursor Cursor)
 
 static SDL_Rect CreateRect(u32 x, u32 y, u32 w, u32 h)
 {
+    printf("CreateRect\n");
     SDL_Rect Result;
     Result.x = x;
     Result.y = y;
@@ -53,6 +56,7 @@ static SDL_Rect CreateRect(u32 x, u32 y, u32 w, u32 h)
 
 static char *StringFromKeyCode(u32 KeyCode)
 {
+    printf("StringFromKeyCode %d\n", KeyCode);
     switch(KeyCode)
     {
     case SDLK_0: return "0";
@@ -97,6 +101,7 @@ static char *StringFromKeyCode(u32 KeyCode)
 
 void DisplayWindow()
 {
+    printf("DisplayWindow\n");
     result InitResult = Init();
     u32 SurfaceIndex = 0;
 
@@ -105,14 +110,14 @@ void DisplayWindow()
         return;
     }
 
-    SDL_Rect DEBUG_Rect = CreateRect(10, 10, 40, 40);
+    SDL_Rect DEBUG_Rect = CreateRect(10, 10, 12, 20);
 
     SDL_Window *Window = SDL_CreateWindow("idi", 0, 0,
                                           SCREEN_WIDTH, SCREEN_HEIGHT,
                                           SDL_WINDOW_HIDDEN);
     SDL_Renderer *Renderer = SDL_CreateRenderer(Window, -1, 0);
 
-    TTF_Font *Font = TTF_OpenFont(FONT_PATH, 24);
+    TTF_Font *Font = TTF_OpenFont(FONT_PATH, 12);
     if(Font == 0) PrintError("TTF_OpenFont");
     SDL_Color FontColor = {220,200,0,255};
 
@@ -135,12 +140,16 @@ void DisplayWindow()
             {
             case SDL_KEYDOWN:
             {
-                SDL_Surface *Surface = TTF_RenderText_Blended(Font,
-                                                              StringFromKeyCode(Event.key.keysym.sym),
-                                                              FontColor);
-                assert(Cursor.BufferIndex < MAX_TEXT_BUFFER);
-                CHAR_TEXTURE_BUFFER[Cursor.BufferIndex++] = SDL_CreateTextureFromSurface(Renderer, Surface);
-                SDL_FreeSurface(Surface);
+                if(Event.key.keysym.sym < 128)
+                {
+                    printf("SDL_KEYDOWN %d\n", Event.key.keysym.sym);
+                    char *String = StringFromKeyCode(Event.key.keysym.sym);
+                    printf("Key code string %s\n", String);
+                    SDL_Surface *Surface = TTF_RenderText_Blended(Font, String, FontColor);
+                    assert(Cursor.BufferIndex < MAX_TEXT_BUFFER);
+                    CHAR_TEXTURE_BUFFER[Cursor.BufferIndex++] = SDL_CreateTextureFromSurface(Renderer, Surface);
+                    SDL_FreeSurface(Surface);
+                }
             } break;
             case SDL_QUIT:
             {
@@ -152,8 +161,8 @@ void DisplayWindow()
         SDL_RenderClear(Renderer);
 
         {
-            u32 ScaleX = 30;
-            u32 ScaleY = 40;
+            u32 ScaleX = 12;
+            u32 ScaleY = 20;
             DEBUG_Rect.x = 0;
             DEBUG_Rect.y = 0;
 
@@ -161,7 +170,7 @@ void DisplayWindow()
             {
                 DEBUG_Rect.x = (SurfaceIndex * ScaleX) % SCREEN_WIDTH;
                 DEBUG_Rect.y = ((SurfaceIndex * ScaleX) / SCREEN_WIDTH) * ScaleY;
-                SDL_RenderCopy(Renderer, CHAR_TEXTURE_BUFFER[SurfaceIndex], NULL, &DEBUG_Rect);
+                SDL_RenderCopy(Renderer, NULL, NULL, &DEBUG_Rect);
                 DEBUG_Rect.x += ScaleX;
             }
         }
