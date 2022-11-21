@@ -35,7 +35,7 @@ static result Init()
 static void InitTextureCache(SDL_Renderer *Renderer)
 {
     u32 I;
-    TTF_Font *Font = TTF_OpenFont(FONT_PATH, 12);
+    TTF_Font *Font = TTF_OpenFont(FONT_PATH, 20);
     if(Font == 0) PrintError("TTF_OpenFont");
     SDL_Color FontColorFG = {220,200,0,255};
     SDL_Color FontColorBG = {0,0,0,255};
@@ -120,7 +120,11 @@ void DisplayWindow()
                 {
                     KEY_CODE_BUFFER[Cursor.BufferIndex] = Event.key.keysym.sym - MIN_KEY_CODE;
                     ++Cursor.BufferIndex;
-                    assert(Cursor.BufferIndex < MAX_KEY_CODE_BUFFER);
+                    if(Cursor.BufferIndex >= MAX_KEY_CODE_BUFFER)
+                    {
+                        PrintError("key code buffer overflow");
+                        Running = 0;
+                    }
                 }
             } break;
             case SDL_QUIT:
