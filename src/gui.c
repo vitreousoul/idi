@@ -1,6 +1,9 @@
 #define SCREEN_WIDTH 480
 #define SCREEN_HEIGHT 320
 
+#define MAX_TEXT_BUFFER 1 << 12
+SDL_Texture *CHAR_TEXTURE_BUFFER[MAX_TEXT_BUFFER];
+
 char *FONT_PATH = "src/PTMono-Regular.ttf";
 
 static result Init()
@@ -23,6 +26,20 @@ static result Init()
     return(Result);
 }
 
+static void DeInit(SDL_Window *Window, SDL_Renderer *Renderer, cursor Cursor)
+{
+    u32 I;
+    for (I = 0; I < Cursor.BufferIndex; I++)
+    {
+        SDL_DestroyTexture(CHAR_TEXTURE_BUFFER[Cursor.BufferIndex]);
+    }
+
+    SDL_DestroyWindow(Window);
+    SDL_DestroyRenderer(Renderer);
+    TTF_Quit();
+    SDL_Quit();
+}
+
 static SDL_Rect CreateRect(u32 x, u32 y, u32 w, u32 h)
 {
     SDL_Rect Result;
@@ -34,7 +51,7 @@ static SDL_Rect CreateRect(u32 x, u32 y, u32 w, u32 h)
     return(Result);
 }
 
-static char *CharFromKeyCode(u32 KeyCode)
+static char *StringFromKeyCode(u32 KeyCode)
 {
     switch(KeyCode)
     {
@@ -81,6 +98,7 @@ static char *CharFromKeyCode(u32 KeyCode)
 void DisplayWindow()
 {
     result InitResult = Init();
+    u32 SurfaceIndex = 0;
 
     if(InitResult == result_Error)
     {
@@ -98,12 +116,12 @@ void DisplayWindow()
     if(Font == 0) PrintError("TTF_OpenFont");
     SDL_Color FontColor = {220,200,0,255};
 
-    SDL_Surface *Surface = TTF_RenderText_Blended(Font, " ", FontColor);
-    SDL_Texture *Texture = SDL_CreateTextureFromSurface(Renderer, Surface);
+    cursor Cursor;
+    Cursor.BufferIndex = 0;
+    Cursor.X = 0;
+    Cursor.Y = 0;
 
     SDL_ShowWindow(Window);
-    SDL_RenderCopy(Renderer, Texture, NULL, &DEBUG_Rect);
-    SDL_RenderPresent(Renderer);
 
     SDL_Event Event;
     u32 Running = 1;
@@ -117,11 +135,11 @@ void DisplayWindow()
             {
             case SDL_KEYDOWN:
             {
-                char *KeyString = CharFromKeyCode(Event.key.keysym.sym);
-                SDL_Surface *Surface = TTF_RenderText_Blended(Font, KeyString, FontColor);
-                SDL_Texture *Texture = SDL_CreateTextureFromSurface(Renderer, Surface);
-                SDL_RenderCopy(Renderer, Texture, NULL, &DEBUG_Rect);
-                SDL_DestroyTexture(Texture);
+                SDL_Surface *Surface = TTF_RenderText_Blended(Font,
+                                                              StringFromKeyCode(Event.key.keysym.sym),
+                                                              FontColor);
+                assert(Cursor.BufferIndex < MAX_TEXT_BUFFER);
+                CHAR_TEXTURE_BUFFER[Cursor.BufferIndex++] = SDL_CreateTextureFromSurface(Renderer, Surface);
                 SDL_FreeSurface(Surface);
             } break;
             case SDL_QUIT:
@@ -131,14 +149,26 @@ void DisplayWindow()
             }
         }
 
+        SDL_RenderClear(Renderer);
+
+        {
+            u32 ScaleX = 30;
+            u32 ScaleY = 40;
+            DEBUG_Rect.x = 0;
+            DEBUG_Rect.y = 0;
+
+            for(SurfaceIndex = 0; SurfaceIndex < Cursor.BufferIndex; ++SurfaceIndex)
+            {
+                DEBUG_Rect.x = (SurfaceIndex * ScaleX) % SCREEN_WIDTH;
+                DEBUG_Rect.y = ((SurfaceIndex * ScaleX) / SCREEN_WIDTH) * ScaleY;
+                SDL_RenderCopy(Renderer, CHAR_TEXTURE_BUFFER[SurfaceIndex], NULL, &DEBUG_Rect);
+                DEBUG_Rect.x += ScaleX;
+            }
+        }
+
         SDL_RenderPresent(Renderer);
         SDL_Delay(DelayInMilliseconds);
     }
 
-    SDL_DestroyWindow(Window);
-    SDL_DestroyRenderer(Renderer);
-    TTF_Quit();
-    SDL_DestroyTexture(Texture);
-    SDL_FreeSurface(Surface);
-    SDL_Quit();
+    DeInit(Window, Renderer, Cursor);
 }
