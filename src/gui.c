@@ -170,7 +170,7 @@ void DisplayWindow()
             {
                 DEBUG_Rect.x = (SurfaceIndex * ScaleX) % SCREEN_WIDTH;
                 DEBUG_Rect.y = ((SurfaceIndex * ScaleX) / SCREEN_WIDTH) * ScaleY;
-                SDL_RenderCopy(Renderer, NULL, NULL, &DEBUG_Rect);
+                SDL_RenderCopy(Renderer, CHAR_TEXTURE_BUFFER[SurfaceIndex], NULL, &DEBUG_Rect);
                 DEBUG_Rect.x += ScaleX;
             }
         }
