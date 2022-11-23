@@ -110,12 +110,16 @@ void DisplayWindow()
 
     while(Running)
     {
+        b32 HadKeyboardEvent = 0;
+
         while(SDL_PollEvent(&Event))
         {
             switch(Event.type)
             {
             case SDL_KEYDOWN:
             {
+                HadKeyboardEvent = 1;
+
                 if(Event.key.keysym.sym >= MIN_KEY_CODE && Event.key.keysym.sym <= MAX_KEY_CODE)
                 {
                     KEY_CODE_BUFFER[Cursor.BufferIndex] = Event.key.keysym.sym - MIN_KEY_CODE;
@@ -134,28 +138,31 @@ void DisplayWindow()
             }
         }
 
-        SDL_RenderClear(Renderer);
-
-        #if 1
+        if(HadKeyboardEvent)
         {
-            u32 ScaleX = 12;
-            u32 ScaleY = 20;
-            DEBUG_Rect.x = 0;
-            DEBUG_Rect.y = 0;
-            u32 I;
+            SDL_RenderClear(Renderer);
 
-            for(I = 0; I < Cursor.BufferIndex; ++I)
+#if 1
             {
-                DEBUG_Rect.x = (I * ScaleX) % SCREEN_WIDTH;
-                DEBUG_Rect.y = ((I * ScaleX) / SCREEN_WIDTH) * ScaleY;
-                SDL_Texture *Texture = TEXTURE_BUFFER[KEY_CODE_BUFFER[I]];
-                SDL_RenderCopy(Renderer, Texture, NULL, &DEBUG_Rect);
-                DEBUG_Rect.x += ScaleX;
-            }
-        }
-        #endif
+                u32 ScaleX = 12;
+                u32 ScaleY = 20;
+                DEBUG_Rect.x = 0;
+                DEBUG_Rect.y = 0;
+                u32 I;
 
-        SDL_RenderPresent(Renderer);
+                for(I = 0; I < Cursor.BufferIndex; ++I)
+                {
+                    DEBUG_Rect.x = (I * ScaleX) % SCREEN_WIDTH;
+                    DEBUG_Rect.y = ((I * ScaleX) / SCREEN_WIDTH) * ScaleY;
+                    SDL_Texture *Texture = TEXTURE_BUFFER[KEY_CODE_BUFFER[I]];
+                    SDL_RenderCopy(Renderer, Texture, NULL, &DEBUG_Rect);
+                    DEBUG_Rect.x += ScaleX;
+                }
+            }
+#endif
+
+            SDL_RenderPresent(Renderer);
+        }
         SDL_Delay(DelayInMilliseconds);
     }
 
