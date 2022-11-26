@@ -11,6 +11,10 @@ u32 KEY_CODE_CACHE[MAX_KEY_CODE_CACHE];
 SDL_Texture *TEXTURE_CACHE[MAX_TEXTURE_CACHE_SIZE];
 gui_glyph_metric GLYPH_METRIC_CACHE[MAX_TEXTURE_CACHE_SIZE];
 
+#define KeyCodeIsAlpha(Code) ((Code) >= SDLK_a && (Code) <= SDLK_z)
+#define KeyModShift(Mod) (((Mod) & (KMOD_LSHIFT | KMOD_RSHIFT)) ? 1 : 0)
+#define KeyModCaps(Mod) (((Mod) & KMOD_CAPS) ? 1 : 0)
+
 char *FONT_PATH[] = {
     "src/PTMono-Regular.ttf",
     "src/ZapfDingbats.ttf",
@@ -38,11 +42,17 @@ static result Init()
     return(Result);
 }
 
-static void InitTextureCache(SDL_Renderer *Renderer, gui_state State)
+static void InitTextureCache(SDL_Renderer *Renderer, gui_state *State)
 {
     u32 I;
-    TTF_Font *Font = TTF_OpenFont(FONT_PATH[0], State.FontSize);
+
+    TTF_Font *Font = TTF_OpenFont(FONT_PATH[0], State->FontData.Size);
     if(Font == 0) PrintError("TTF_OpenFont");
+
+    State->FontData.Ascent = TTF_FontAscent(Font);
+    State->FontData.Descent = TTF_FontDescent(Font);
+    State->FontData.Height = TTF_FontHeight(Font);
+
     SDL_Color FontColorFG = {220,200,0,255};
     SDL_Color FontColorBG = {0,0,0,255};
 
@@ -104,7 +114,7 @@ static gui_state InitGuiState()
 {
     gui_state Result;
     Result.Running = 1;
-    Result.FontSize = 36;
+    Result.FontData.Size = 36;
     Result.Cursor.BufferIndex = 0;
     Result.Cursor.X = 0;
     Result.Cursor.Y = 0;
@@ -146,9 +156,17 @@ static b32 HandleEvents(gui_state *State)
                 }
 
             }
-            else if(Event.key.keysym.sym >= MIN_KEY_CODE && Event.key.keysym.sym <= MAX_KEY_CODE)
+
+            if(Event.key.keysym.sym >= MIN_KEY_CODE &&
+               Event.key.keysym.sym <= MAX_KEY_CODE)
             {
-                KEY_CODE_CACHE[State->Cursor.BufferIndex] = Event.key.keysym.sym - MIN_KEY_CODE;
+                s32 Offset = 0;
+                if(KeyCodeIsAlpha(Event.key.keysym.sym) &&
+                   (KeyModShift(Event.key.keysym.mod) ^ KeyModCaps(Event.key.keysym.mod)))
+                {
+                    Offset = -32;
+                }
+                KEY_CODE_CACHE[State->Cursor.BufferIndex] = (Event.key.keysym.sym + Offset) - MIN_KEY_CODE;
                 ++State->Cursor.BufferIndex;
                 if(State->Cursor.BufferIndex >= MAX_KEY_CODE_CACHE)
                 {
@@ -187,7 +205,7 @@ void DisplayWindow()
     assert(Renderer);
 
     gui_state State = InitGuiState();
-    InitTextureCache(Renderer, State);
+    InitTextureCache(Renderer, &State);
 
     SDL_ShowWindow(Window);
 
@@ -204,8 +222,8 @@ void DisplayWindow()
 #if 1
             {
                 DEBUG_Rect.x = 0;
-                DEBUG_Rect.y = 0;
                 u32 I;
+                s32 Baseline = 12;
 
                 for(I = 0; I < State.Cursor.BufferIndex; ++I)
                 {
@@ -213,14 +231,17 @@ void DisplayWindow()
                     gui_glyph_metric GlyphMetric = GLYPH_METRIC_CACHE[KeyCodeIndex];
                     SDL_Texture *Texture = TEXTURE_CACHE[KeyCodeIndex];
 
+
                     if((DEBUG_Rect.x + GlyphMetric.Advance) > SCREEN_WIDTH)
                     {
                         DEBUG_Rect.x = 0;
-                        DEBUG_Rect.y += 40;
+                        Baseline += State.FontData.Height;
                     }
 
+                    DEBUG_Rect.x += GlyphMetric.Advance / 2;
+                    DEBUG_Rect.y = Baseline - State.FontData.Descent;
+                    DEBUG_Rect.y += 5;
                     SDL_RenderCopy(Renderer, Texture, NULL, &DEBUG_Rect);
-                    DEBUG_Rect.x += GlyphMetric.Advance;
                 }
             }
 #endif

@@ -5,10 +5,18 @@ typedef struct gui_cursor
     u32 Y;
 } gui_cursor;
 
+typedef struct gui_font_data
+{
+    u32 Size;
+    s32 Ascent;
+    s32 Descent;
+    s32 Height;
+} gui_font_data;
+
 typedef struct gui_state
 {
     u32 Running;
-    u32 FontSize;
+    gui_font_data FontData;
     gui_cursor Cursor;
 } gui_state;
 
