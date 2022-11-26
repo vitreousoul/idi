@@ -160,13 +160,13 @@ static b32 HandleEvents(gui_state *State)
             if(Event.key.keysym.sym >= MIN_KEY_CODE &&
                Event.key.keysym.sym <= MAX_KEY_CODE)
             {
-                s32 Offset = 0;
+                s32 UppercaseOffset = 0;
                 if(KeyCodeIsAlpha(Event.key.keysym.sym) &&
                    (KeyModShift(Event.key.keysym.mod) ^ KeyModCaps(Event.key.keysym.mod)))
                 {
-                    Offset = -32;
+                    UppercaseOffset = -32;
                 }
-                KEY_CODE_CACHE[State->Cursor.BufferIndex] = (Event.key.keysym.sym + Offset) - MIN_KEY_CODE;
+                KEY_CODE_CACHE[State->Cursor.BufferIndex] = (Event.key.keysym.sym + UppercaseOffset) - MIN_KEY_CODE;
                 ++State->Cursor.BufferIndex;
                 if(State->Cursor.BufferIndex >= MAX_KEY_CODE_CACHE)
                 {
