@@ -20,15 +20,6 @@ typedef struct gui_state
     gui_cursor Cursor;
 } gui_state;
 
-typedef struct gui_glyph_metric
-{
-    s32 MinX;
-    s32 MaxX;
-    s32 MinY;
-    s32 MaxY;
-    s32 Advance;
-} gui_glyph_metric;
-
 typedef struct gui_stb_bitmap
 {
     s32 Width;

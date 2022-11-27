@@ -2,7 +2,7 @@
 
 DEBUG=0
 SOURCE_FILES="src/idi.c"
-LIBS="`sdl2-config --cflags --libs` -lSDL2_ttf"
+LIBS="`sdl2-config --cflags --libs`"
 SETTINGS="-std=c99 -Wall -Wextra -Wstrict-prototypes -Wold-style-definition -Wmissing-prototypes -Wmissing-declarations"
 
 if [ $DEBUG -eq 0 ]; then
