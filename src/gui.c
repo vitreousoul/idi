@@ -1,3 +1,5 @@
+#define USE_SDL_TTF 0 /* TODO: remove sdl_ttf and USE_SDL_TTF */
+
 #define SCREEN_WIDTH 480
 #define SCREEN_HEIGHT 320
 
@@ -10,6 +12,8 @@ u32 KEY_CODE_CACHE[MAX_KEY_CODE_CACHE];
 #define MAX_TEXTURE_CACHE_SIZE (MAX_KEY_CODE - MIN_KEY_CODE)
 SDL_Texture *TEXTURE_CACHE[MAX_TEXTURE_CACHE_SIZE];
 gui_glyph_metric GLYPH_METRIC_CACHE[MAX_TEXTURE_CACHE_SIZE];
+
+u8 ttf_buffer[1<<25];
 
 #define KeyCodeIsAlpha(Code) ((Code) >= SDLK_a && (Code) <= SDLK_z)
 #define KeyModShift(Mod) (((Mod) & (KMOD_LSHIFT | KMOD_RSHIFT)) ? 1 : 0)
@@ -44,11 +48,10 @@ static result Init()
 
 static void InitTextureCache(SDL_Renderer *Renderer, gui_state *State)
 {
+#if USE_SDL_TTF
     u32 I;
-
     TTF_Font *Font = TTF_OpenFont(FONT_PATH[0], State->FontData.Size);
     if(Font == 0) PrintError("TTF_OpenFont");
-
     State->FontData.Ascent = TTF_FontAscent(Font);
     State->FontData.Descent = TTF_FontDescent(Font);
     State->FontData.Height = TTF_FontHeight(Font);
@@ -81,6 +84,68 @@ static void InitTextureCache(SDL_Renderer *Renderer, gui_state *State)
 
         SDL_FreeSurface(Surface);
     }
+#else
+    stbtt_fontinfo Font;
+    /* u8 *Bitmap; */
+    gui_stb_bitmap Bitmap;
+    Bitmap.Scale = 64;
+    buffer *Buffer = ReadFileIntoBuffer(FONT_PATH[0]);
+
+    stbtt_InitFont(&Font, Buffer->Data, stbtt_GetFontOffsetForIndex(Buffer->Data, 0));
+    printf("Bitmap.At %d\n", Bitmap.At[0]);
+    for (u32 I = MIN_KEY_CODE; I < MAX_KEY_CODE; I++)
+    {
+        u32 CacheIndex = I - MIN_KEY_CODE;
+        Bitmap.At = stbtt_GetCodepointBitmap(&Font, 0, stbtt_ScaleForPixelHeight(&Font, Bitmap.Scale), I, &Bitmap.Width, &Bitmap.Height, 0, 0);
+        u32 Pixels[Bitmap.Width * Bitmap.Height];
+        printf("Bitmap.Width %d\n", Bitmap.Width);
+        printf("Bitmap.Height %d\n", Bitmap.Height);
+        if(!(Bitmap.Width || Bitmap.Height)) continue;
+        for(s32 Y = 0; Y < Bitmap.Height; ++Y)
+        {
+            /* printf("\n"); */
+            for(s32 X = 0; X < Bitmap.Width; ++X)
+            {
+                u32 I = Y * Bitmap.Width + X;
+                u8 Value = Bitmap.At[I];
+                /* printf("%d ", Value >> 5); */
+                Pixels[I] =
+                    (Value << 24) |
+                    (Value << 16) |
+                    (Value << 8) |
+                    (Value << 0);
+                /* printf("%u ", Pixels[I]); */
+            }
+        }
+
+        SDL_Texture *Texture = SDL_CreateTexture(Renderer,
+                                                 SDL_PIXELFORMAT_RGBA8888,
+                                                 SDL_TEXTUREACCESS_STATIC,
+                                                 Bitmap.Width,
+                                                 Bitmap.Height);
+        printf("Texture %p\n", Texture);
+        /* SDL_Rect Rect = {0,0,100,100}; */
+        int UpdateTextureError =  SDL_UpdateTexture(Texture,
+                                                    0,
+                                                    Pixels, Bitmap.Width*4);
+        assert(!UpdateTextureError);
+        TEXTURE_CACHE[CacheIndex] = Texture;
+        stbtt_FreeBitmap(Bitmap.At, 0);
+    }
+    /*
+      SDL_Surface* Surface = SDL_CreateRGBSurfaceFrom(Pixels,
+      Bitmap.Width, Bitmap.Height, 32,
+      Bitmap.Width * 32,
+      0xff000000, 0x00ff0000, 0x0000ff00, 0x000000ff);
+      if(!Surface) printf("Surface error %s\n", SDL_GetError());
+      assert(Surface);
+      printf("Surface %p\n", Surface);
+    */
+    /* SDL_CreateTextureFromSurface(Renderer, Surface); */
+    /* TEXTURE_CACHE[0] = Texture; */
+    /* KEY_CODE_CACHE[0] = 77; */
+    /* SDL_FreeSurface(Surface); */
+#endif
 }
 
 static void DeInit(SDL_Window *Window, SDL_Renderer *Renderer)
@@ -196,7 +261,7 @@ void DisplayWindow()
         return;
     }
 
-    SDL_Rect DEBUG_Rect = CreateRect(10, 10, 12, 20);
+    SDL_Rect DEBUG_Rect = CreateRect(0, 0, 12, 20);
 
     SDL_Window *Window = SDL_CreateWindow("idi", 0, 0,
                                           SCREEN_WIDTH, SCREEN_HEIGHT,
@@ -215,11 +280,10 @@ void DisplayWindow()
     {
         b32 HadKeyboardEvent = HandleEvents(&State);
 
-        if(HadKeyboardEvent)
+        if(1 || HadKeyboardEvent)
         {
             SDL_RenderClear(Renderer);
 
-#if 1
             {
                 DEBUG_Rect.x = 0;
                 u32 I;
@@ -228,23 +292,22 @@ void DisplayWindow()
                 for(I = 0; I < State.Cursor.BufferIndex; ++I)
                 {
                     u32 KeyCodeIndex = KEY_CODE_CACHE[I];
-                    gui_glyph_metric GlyphMetric = GLYPH_METRIC_CACHE[KeyCodeIndex];
-                    SDL_Texture *Texture = TEXTURE_CACHE[KeyCodeIndex];
+                    /* gui_glyph_metric GlyphMetric = GLYPH_METRIC_CACHE[KeyCodeIndex]; */
+                    SDL_Texture *Texture = TEXTURE_CACHE[KeyCodeIndex];/*KeyCodeIndex];*/
+                    /* s32 Offset = GlyphMetric.Advance / 2; */
+                    s32 Offset = 20;
 
-
-                    if((DEBUG_Rect.x + GlyphMetric.Advance) > SCREEN_WIDTH)
+                    if((DEBUG_Rect.x + Offset) > SCREEN_WIDTH)
                     {
                         DEBUG_Rect.x = 0;
-                        Baseline += State.FontData.Height;
+                        Baseline += 28;
                     }
 
-                    DEBUG_Rect.x += GlyphMetric.Advance / 2;
-                    DEBUG_Rect.y = Baseline - State.FontData.Descent;
-                    DEBUG_Rect.y += 5;
+                    DEBUG_Rect.x += Offset;
+                    DEBUG_Rect.y = Baseline;
                     SDL_RenderCopy(Renderer, Texture, NULL, &DEBUG_Rect);
                 }
             }
-#endif
 
             SDL_RenderPresent(Renderer);
         }

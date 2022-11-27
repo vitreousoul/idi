@@ -5,6 +5,9 @@
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_ttf.h>
 
+#define STB_TRUETYPE_IMPLEMENTATION
+#include "stb_truetype.h"
+
 #include "types.h"
 #include "buffer.h"
 #include "json_parser.h"

@@ -29,4 +29,12 @@ typedef struct gui_glyph_metric
     s32 Advance;
 } gui_glyph_metric;
 
+typedef struct gui_stb_bitmap
+{
+    s32 Width;
+    s32 Height;
+    s32 Scale;
+    u8 *At;
+} gui_stb_bitmap;
+
 void DisplayWindow(void);

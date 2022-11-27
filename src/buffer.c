@@ -9,6 +9,12 @@ CreateBuffer(size Size)
     return Result;
 }
 
+void FreeBuffer(buffer *Buffer)
+{
+    free(Buffer->Data);
+    free(Buffer);
+}
+
 buffer *
 GetBufferSubRegion(buffer *Buffer, size Begin, size End)
 {
