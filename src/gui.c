@@ -12,8 +12,6 @@ u32 KEY_CODE_CACHE[MAX_KEY_CODE_CACHE];
 #define MAX_TEXTURE_CACHE_SIZE (MAX_KEY_CODE - MIN_KEY_CODE)
 SDL_Texture *TEXTURE_CACHE[MAX_TEXTURE_CACHE_SIZE];
 
-u8 ttf_buffer[1<<25];
-
 #define KeyCodeIsAlpha(Code) ((Code) >= SDLK_a && (Code) <= SDLK_z)
 #define KeyModShift(Mod) (((Mod) & (KMOD_LSHIFT | KMOD_RSHIFT)) ? 1 : 0)
 #define KeyModCaps(Mod) (((Mod) & KMOD_CAPS) ? 1 : 0)
@@ -64,7 +62,8 @@ static void InitTextureCache(SDL_Renderer *Renderer, gui_state *State)
     for (u32 I = MIN_KEY_CODE; I < MAX_KEY_CODE; I++)
     {
         u32 CacheIndex = I - MIN_KEY_CODE;
-        Bitmap.At = stbtt_GetCodepointBitmap(&Font, 0, stbtt_ScaleForPixelHeight(&Font, Bitmap.Scale), I, &Bitmap.Width, &Bitmap.Height, 0, 0);
+        s32 Scale = stbtt_ScaleForPixelHeight(&Font, Bitmap.Scale);
+        Bitmap.At = stbtt_GetCodepointBitmap(&Font, 0, Scale, I, &Bitmap.Width, &Bitmap.Height, 0, 0);
         u32 Pixels[Bitmap.Width * Bitmap.Height];
 
         if(!(Bitmap.Width || Bitmap.Height)) continue;
