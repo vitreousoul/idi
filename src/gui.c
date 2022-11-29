@@ -59,14 +59,14 @@ static void InitTextureCache(SDL_Renderer *Renderer, gui_state *State)
 
     stbtt_InitFont(&Font, Buffer->Data, stbtt_GetFontOffsetForIndex(Buffer->Data, 0));
 
+    /* s32 Scale = stbtt_ScaleForPixelHeight(&Font, 20); */
     for (u32 I = MIN_KEY_CODE; I < MAX_KEY_CODE; I++)
     {
         u32 CacheIndex = I - MIN_KEY_CODE;
-        s32 Scale = stbtt_ScaleForPixelHeight(&Font, Bitmap.Scale);
-        Bitmap.At = stbtt_GetCodepointBitmap(&Font, 0, Scale, I, &Bitmap.Width, &Bitmap.Height, 0, 0);
+        Bitmap.At = stbtt_GetCodepointBitmap(&Font, 0, 0.5, I, &Bitmap.Width, &Bitmap.Height, 0, 0);
         u32 Pixels[Bitmap.Width * Bitmap.Height];
 
-        if(!(Bitmap.Width || Bitmap.Height)) continue;
+        if(!(Bitmap.Width && Bitmap.Height)) continue;
 
         for(s32 Y = 0; Y < Bitmap.Height; ++Y)
         {
@@ -193,10 +193,10 @@ void DisplayWindow()
     }
 
     SDL_Rect DEBUG_Rect = CreateRect(0, 0, 12, 20);
-
     SDL_Window *Window = SDL_CreateWindow("idi", 0, 0,
                                           SCREEN_WIDTH, SCREEN_HEIGHT,
                                           SDL_WINDOW_HIDDEN);
+    assert(Window);
     SDL_Renderer *Renderer = SDL_CreateRenderer(Window, -1, 0);
     assert(Renderer);
 
