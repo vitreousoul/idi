@@ -1,5 +1,3 @@
-#define USE_SDL_TTF 0 /* TODO: remove sdl_ttf and USE_SDL_TTF */
-
 #define SCREEN_WIDTH 480
 #define SCREEN_HEIGHT 320
 

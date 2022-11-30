@@ -1,5 +1,4 @@
-buffer *
-CreateBuffer(size Size)
+buffer *CreateBuffer(size Size)
 {
     buffer *Result = malloc(sizeof(buffer));
     Result->Size = Size;
@@ -15,8 +14,7 @@ void FreeBuffer(buffer *Buffer)
     free(Buffer);
 }
 
-buffer *
-GetBufferSubRegion(buffer *Buffer, size Begin, size End)
+buffer *GetBufferSubRegion(buffer *Buffer, size Begin, size End)
 {
     buffer *Result = CreateBuffer(End - Begin);
     size Index;
@@ -31,8 +29,7 @@ GetBufferSubRegion(buffer *Buffer, size Begin, size End)
     return Result;
 }
 
-static size
-NullTerminatedStringLength(char *String)
+static size NullTerminatedStringLength(char *String)
 {
     size Result = 0;
 
@@ -44,8 +41,7 @@ NullTerminatedStringLength(char *String)
     return Result;
 }
 
-buffer *
-BufferFromNullTerminatedString(char *String)
+buffer *BufferFromNullTerminatedString(char *String)
 {
     size StringLength = NullTerminatedStringLength(String);
     buffer *Result = CreateBuffer(StringLength);
@@ -59,8 +55,7 @@ BufferFromNullTerminatedString(char *String)
     return Result;
 }
 
-void
-DebugPrintBuffer(buffer *Buffer)
+void DebugPrintBuffer(buffer *Buffer)
 {
     size Index;
 

@@ -1,8 +1,7 @@
 #define CharIsStartOfBoolean(Char) ((Char) == 't' || (Char) == 'f')
 #define GetChar(Buffer, Parser) ((Buffer)->Data[(Parser)->Index])
 
-static json_token_list *
-CreateTokenListHead()
+static json_token_list *CreateTokenListHead()
 {
     json_token_list *Result = malloc(sizeof(json_token_list));
     Result->Type = json_token_type_Empty;
@@ -13,8 +12,7 @@ CreateTokenListHead()
     return(Result);
 }
 
-static json_token_list *
-AppendList(json_token_list *List, json_token_type Type, json_buffer_range Range)
+static json_token_list *AppendList(json_token_list *List, json_token_type Type, json_buffer_range Range)
 {
     json_token_list *Result = malloc(sizeof(json_token_list));
     Result->Type = Type;
@@ -26,8 +24,7 @@ AppendList(json_token_list *List, json_token_type Type, json_buffer_range Range)
     return(Result);
 }
 
-static json_token_list*
-AppendListWithTokenType(json_token_list *List, json_token_type Type)
+static json_token_list *AppendListWithTokenType(json_token_list *List, json_token_type Type)
 {
     json_buffer_range Range = {0,0};
     json_token_list *Result = AppendList(List, Type, Range);
@@ -35,15 +32,13 @@ AppendListWithTokenType(json_token_list *List, json_token_type Type)
     return(Result);
 }
 
-static void
-ParserError(json_parser *Parser, char *Message)
+static void ParserError(json_parser *Parser, char *Message)
 {
     PrintError(Message);
     Parser->State = json_parser_state_Error;
 }
 
-static void
-ParseSpace(buffer *Buffer, json_parser *Parser)
+static void ParseSpace(buffer *Buffer, json_parser *Parser)
 {
     while(CharIsSpace(Buffer->Data[Parser->Index]) && (Parser->Index < Buffer->Size))
     {
@@ -51,8 +46,7 @@ ParseSpace(buffer *Buffer, json_parser *Parser)
     }
 }
 
-static void
-ParseKeyword(buffer *Buffer, json_parser *Parser, char *Keyword)
+static void ParseKeyword(buffer *Buffer, json_parser *Parser, char *Keyword)
 {
     u32 KeywordIndex = 0;
     b32 Matched = True;
@@ -80,8 +74,7 @@ ParseKeyword(buffer *Buffer, json_parser *Parser, char *Keyword)
     }
 }
 
-static json_buffer_range
-ParseString(buffer *Buffer, json_parser *Parser)
+static json_buffer_range ParseString(buffer *Buffer, json_parser *Parser)
 {
     json_buffer_range Result;
     Result.Start = Parser->Index;
@@ -113,8 +106,7 @@ ParseString(buffer *Buffer, json_parser *Parser)
     return(Result);
 }
 
-static json_token_type
-ParseBoolean(buffer *Buffer, json_parser *Parser)
+static json_token_type ParseBoolean(buffer *Buffer, json_parser *Parser)
 {
     json_token_type Result = json_token_type_Empty;
 
@@ -147,8 +139,7 @@ ParseBoolean(buffer *Buffer, json_parser *Parser)
     return(Result);
 }
 
-static json_buffer_range
-ParseNumber(buffer *Buffer, json_parser *Parser)
+static json_buffer_range ParseNumber(buffer *Buffer, json_parser *Parser)
 {
     json_buffer_range Result = {Parser->Index, Parser->Index};
     b32 PreFloatPoint = True;
@@ -182,8 +173,7 @@ ParseNumber(buffer *Buffer, json_parser *Parser)
     return(Result);
 }
 
-static json_token_list *
-ParseJsonBuffer(buffer *Buffer)
+static json_token_list *ParseJsonBuffer(buffer *Buffer)
 {
     json_token_list *Result = CreateTokenListHead();
     json_token_list *Last = Result;
@@ -284,8 +274,7 @@ ParseJsonBuffer(buffer *Buffer)
     return(Result);
 }
 
-static json_value *
-ParseJsonTokens(json_token_parser *Parser)
+static json_value *ParseJsonTokens(json_token_parser *Parser)
 {
     json_value *Result = malloc(sizeof(json_value));
     b32 Running = True;
@@ -443,8 +432,7 @@ ParseJsonTokens(json_token_parser *Parser)
     return(Result);
 }
 
-static void
-PrintJsonValue(json_value *Value, u32 Depth)
+static void PrintJsonValue(json_value *Value, u32 Depth)
 {
     u32 I;
 
@@ -481,8 +469,7 @@ PrintJsonValue(json_value *Value, u32 Depth)
     }
 }
 
-json_value *
-ParseJson(buffer *Buffer)
+json_value *ParseJson(buffer *Buffer)
 {
     json_token_list *Token = ParseJsonBuffer(Buffer);
     if(Token && Token->Type == json_token_type_Empty && Token->Next)

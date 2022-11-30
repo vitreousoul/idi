@@ -1,5 +1,4 @@
-size
-GetFileSize(FILE *File)
+size GetFileSize(FILE *File)
 {
     size Result;
 
@@ -9,8 +8,7 @@ GetFileSize(FILE *File)
     return(Result);
 }
 
-buffer *
-ReadFileIntoBuffer(char *FilePath)
+buffer *ReadFileIntoBuffer(char *FilePath)
 {
     FILE *File = fopen(FilePath, "rb");
     size FileSize = GetFileSize(File);
@@ -23,8 +21,7 @@ ReadFileIntoBuffer(char *FilePath)
     return Result;
 }
 
-void
-WriteBufferToFile(buffer *Buffer, char *FilePath)
+void WriteBufferToFile(buffer *Buffer, char *FilePath)
 {
     FILE *File = fopen(FilePath, "wb");
 
@@ -32,20 +29,17 @@ WriteBufferToFile(buffer *Buffer, char *FilePath)
     fclose(File);
 }
 
-void
-PrintLog(char *Type, char *Message)
+void PrintLog(char *Type, char *Message)
 {
     printf("[ %s ] %s\n", Type, Message);
 }
 
-void
-PrintMessage(char *Message)
+void PrintMessage(char *Message)
 {
     PrintLog("Log", Message);
 }
 
-void
-PrintError(char *Message)
+void PrintError(char *Message)
 {
     PrintLog("Error", Message);
 }
