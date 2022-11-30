@@ -308,6 +308,13 @@ ParseJsonTokens(json_token_parser *Parser)
             Parser->Token = Parser->Token->Next;
             Running = False;
         } break;
+        case json_token_type_String:
+        {
+            Result->Type = json_value_String;
+            Result->Value.Range = Parser->Token->Range;
+            Parser->Token = Parser->Token->Next;
+            Running = False;
+        } break;
         case json_token_type_OpenCurly:
         {
             Result->Type = json_value_Object;
@@ -383,6 +390,7 @@ ParseJsonTokens(json_token_parser *Parser)
         } break;
         case json_token_type_OpenSquare:
         {
+            // TODO: a trailing comma is required for array items to be parse correctly, so we should fix that :(
             Result->Type = json_value_Array;
             json_array *CurrentItem = malloc(sizeof(json_array));
             json_array *FirstItem = CurrentItem;

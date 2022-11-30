@@ -60,6 +60,7 @@ struct json_value
         f32 Number;
         json_object *Object;
         json_array *Array;
+        json_buffer_range Range;
     } Value;
 };
 

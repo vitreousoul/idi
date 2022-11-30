@@ -1,1 +1,1 @@
-{ "foo": [ true, false, ] }
+[ true, {"foo":true, "baz": "bez"}, false, "bar", ]
