@@ -102,8 +102,7 @@ typedef struct json_token_parser
 json_value *ParseJson(buffer *Buffer);
 char *GetJsonTokenTypeString(json_token_type Type);
 
-char *
-GetJsonTokenTypeString(json_token_type Type)
+char *GetJsonTokenTypeString(json_token_type Type)
 {
     switch(Type)
     {

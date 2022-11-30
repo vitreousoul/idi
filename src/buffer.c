@@ -14,21 +14,6 @@ void FreeBuffer(buffer *Buffer)
     free(Buffer);
 }
 
-buffer *GetBufferSubRegion(buffer *Buffer, size Begin, size End)
-{
-    buffer *Result = CreateBuffer(End - Begin);
-    size Index;
-
-    if (Begin >= 0 && End <= Buffer->Size) {
-        for (Index = Begin; Index < End; Index++)
-        {
-            Result->Data[Index - Begin] = Buffer->Data[Index];
-        }
-    }
-
-    return Result;
-}
-
 static size NullTerminatedStringLength(char *String)
 {
     size Result = 0;
