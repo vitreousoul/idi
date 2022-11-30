@@ -3,7 +3,10 @@
 #include "buffer.c"
 #include "platform.c"
 #include "json_parser.c"
+
+#if BUILD_GUI
 #include "gui.c"
+#endif
 
 int main()
 {
@@ -13,7 +16,9 @@ int main()
     /* buffer *Source = BufferFromNullTerminatedString("{ 123, \"foo\": true }"); */
     ParseJson(Source);
 
+#if BUILD_GUI
     DisplayWindow();
+#endif
 
     return(Result);
 }

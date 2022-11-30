@@ -2,7 +2,11 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+#define BUILD_GUI 0
+
+#if BUILD_GUI
 #include <SDL2/SDL.h>
+#endif
 
 #define STB_TRUETYPE_IMPLEMENTATION
 #include "stb_truetype.h"
@@ -11,7 +15,9 @@
 #include "buffer.h"
 #include "json_parser.h"
 #include "platform.h"
+#if BUILD_GUI
 #include "gui.h"
+#endif
 
 #define ArrayItemSize(Array) (sizeof(Array[0]))
 #define ArrayCount(Array) (sizeof(Array) / ArrayItemSize(Array))
