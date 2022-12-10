@@ -319,7 +319,8 @@ static json_value *ParseJsonTokens(json_token_parser *Parser)
             {
                 switch(State)
                 {
-                case Key: {
+                case Key:
+                {
                     switch(Parser->Token->Type)
                     {
                     case json_token_type_String:
@@ -348,7 +349,8 @@ static json_value *ParseJsonTokens(json_token_parser *Parser)
                     }
                     }
                 } break;
-                case Value: {
+                case Value:
+                {
                     CurrentItem->Value = ParseJsonTokens(Parser);
                     json_object *NextItem = malloc(sizeof(json_object));
                     NextItem->Value = 0;
