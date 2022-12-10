@@ -407,18 +407,7 @@ static json_value *ParseJsonTokens(json_token_parser *Parser)
                     if(Parser->Token && Parser->Token->Type == json_token_type_Comma)
                     {
                         Parser->Token = Parser->Token->Next;
-                    }
-                    else if(Parser->Token && Parser->Token->Type == json_token_type_CloseSquare)
-                    {
-                        Parser->Token = Parser->Token->Next;
-                        Running = False;
-                        break;
-                    }
-                    else
-                    {
-                        PrintError("Unexpected token after parsing array value");
-                        Running = False;
-                        break;
+                        continue;
                     }
                 }
             }
