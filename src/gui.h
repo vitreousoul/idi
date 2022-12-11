@@ -24,7 +24,6 @@ typedef struct gui_stb_bitmap
 {
     s32 Width;
     s32 Height;
-    s32 Scale;
     u8 *At;
 } gui_stb_bitmap;
 

@@ -19,6 +19,7 @@ char *FONT_PATH[] = {
     "src/PTMono-Regular.ttf",
     "src/ZapfDingbats.ttf",
     "src/Bodoni Ornaments.ttf",
+    "src/AppleGothic.ttf",
 };
 
 static result Init()
@@ -49,7 +50,7 @@ static void DeInit(SDL_Window *Window, SDL_Renderer *Renderer)
     SDL_Quit();
 }
 
-static stbtt_fontinfo InitTextureCache(SDL_Renderer *Renderer, gui_state *State, f32 *Scale, f32 PixelHeight)
+static stbtt_fontinfo InitTextureCache(SDL_Renderer *Renderer, f32 *Scale, f32 PixelHeight)
 {
     stbtt_fontinfo FontInfo;
     gui_char_data CharData;
@@ -58,7 +59,6 @@ static stbtt_fontinfo InitTextureCache(SDL_Renderer *Renderer, gui_state *State,
 
     stbtt_InitFont(&FontInfo, Buffer->Data, stbtt_GetFontOffsetForIndex(Buffer->Data, 0));
     *Scale = stbtt_ScaleForPixelHeight(&FontInfo, PixelHeight);
-    Bitmap.Scale = *Scale;
 
     for (u32 I = MIN_KEY_CODE; I < MAX_KEY_CODE; I++)
     {
@@ -70,7 +70,6 @@ static stbtt_fontinfo InitTextureCache(SDL_Renderer *Renderer, gui_state *State,
         Bitmap.At = stbtt_GetCodepointBitmap(&FontInfo, 0, *Scale, I,
                                              &Bitmap.Width, &Bitmap.Height,
                                              &CharData.XOffset, &CharData.YOffset);
-        printf("Offset (x,y): (%d,%d)\n", CharData.XOffset, CharData.YOffset);
         u32 Pixels[Bitmap.Width * Bitmap.Height];
 
         if(!(Bitmap.Width && Bitmap.Height)) continue;
@@ -94,7 +93,7 @@ static stbtt_fontinfo InitTextureCache(SDL_Renderer *Renderer, gui_state *State,
                                                  SDL_TEXTUREACCESS_STATIC,
                                                  Bitmap.Width,
                                                  Bitmap.Height);
-        int UpdateTextureError =  SDL_UpdateTexture(Texture, 0, Pixels, Bitmap.Width * 4);
+        int UpdateTextureError = SDL_UpdateTexture(Texture, 0, Pixels, Bitmap.Width * 4);
         assert(!UpdateTextureError);
         TEXTURE_CACHE[CacheIndex] = Texture;
         CHAR_DATA_CACHE[CacheIndex] = CharData;
@@ -202,7 +201,7 @@ void DisplayWindow()
         return;
     }
 
-    SDL_Rect DEBUG_Rect = CreateRect(0, 0, 12, 20);
+    SDL_Rect DEBUG_Rect = CreateRect(0, 0, 0, 0);
     SDL_Window *Window = SDL_CreateWindow("idi", 0, 0,
                                           SCREEN_WIDTH, SCREEN_HEIGHT,
                                           SDL_WINDOW_HIDDEN);
@@ -212,23 +211,24 @@ void DisplayWindow()
 
     gui_state State = InitGuiState();
 
-    f32 PixelHeight = 32;
+    f32 PixelHeight = 26;
     f32 Scale;
     s32 AdvanceWidth;
     s32 LeftSideBearing;
-    stbtt_fontinfo FontInfo = InitTextureCache(Renderer, &State, &Scale, PixelHeight);
+    stbtt_fontinfo FontInfo = InitTextureCache(Renderer, &Scale, PixelHeight);
     gui_rect FontBoundingRect;
     stbtt_GetFontBoundingBox(&FontInfo,
                              &FontBoundingRect.X0, &FontBoundingRect.Y0,
                              &FontBoundingRect.X1, &FontBoundingRect.Y1);
-    printf("Scale %f\n", Scale);
-    printf("Y0 %d\n", FontBoundingRect.Y0);
     State.Cursor.Y = Scale - FontBoundingRect.Y0;
     State.Cursor.X = 0;
 
     u32 DelayInMilliseconds = 32;
 
     SDL_ShowWindow(Window);
+
+    s32 MinKern = 9999999;
+    s32 MaxKern = 0;
 
     while(State.Running)
     {
@@ -256,7 +256,14 @@ void DisplayWindow()
                     DEBUG_Rect.h = (State.Cursor.Y + Scale * CharData.Y1) - DEBUG_Rect.y;
 
                     stbtt_GetGlyphHMetrics(&FontInfo, KeyCodeIndex, &AdvanceWidth, &LeftSideBearing);
-                    s32 NextX = State.Cursor.X + Scale * AdvanceWidth;
+                    s32 KernAdvance = 0;
+                    if(I < State.Cursor.BufferIndex - 1)
+                    {
+                        KernAdvance = stbtt_GetCodepointKernAdvance(&FontInfo, KeyCodeIndex, KEY_CODE_CACHE[I + 1]);
+                        if(KernAdvance < MinKern) MinKern = KernAdvance;
+                        if(KernAdvance > MaxKern) MaxKern = KernAdvance;
+                    }
+                    s32 NextX = State.Cursor.X + KernAdvance + Scale * AdvanceWidth;
 
                     if(NextX > SCREEN_WIDTH)
                     {
