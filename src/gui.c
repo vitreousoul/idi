@@ -134,6 +134,9 @@ static gui_state InitGuiState()
     Result.Cursor.BufferIndex = 0;
     Result.Cursor.X = 0;
     Result.Cursor.Y = 0;
+    Result.Color.R = 255;
+    Result.Color.G = 255;
+    Result.Color.B = 255;
 
     return(Result);
 }
@@ -190,6 +193,18 @@ static b32 HandleEvents(gui_state *State)
                     State->Running = 0;
                 }
             }
+        } break;
+        case SDL_MOUSEBUTTONDOWN:
+        {
+            State->Color.R = 255;
+            State->Color.G = 20;
+            State->Color.B = 255;
+        } break;
+        case SDL_MOUSEBUTTONUP:
+        {
+            State->Color.R = 20;
+            State->Color.G = 255;
+            State->Color.B = 255;
         } break;
         case SDL_QUIT:
         {
@@ -288,7 +303,7 @@ void DisplayWindow()
 
                     DEBUG_Rect.x = State.Cursor.X + CharData.XOffset;
                     DEBUG_Rect.y = State.Cursor.Y + CharData.YOffset;
-
+                    SDL_SetTextureColorMod(Texture, State.Color.R, State.Color.G, State.Color.B);
                     SDL_RenderCopy(Renderer, Texture, NULL, &DEBUG_Rect);
                 }
             }

@@ -13,11 +13,19 @@ typedef struct gui_font_data
     s32 Height;
 } gui_font_data;
 
+typedef struct gui_rgb
+{
+    u8 R;
+    u8 G;
+    u8 B;
+} gui_rgb;
+
 typedef struct gui_state
 {
     u32 Running;
     gui_font_data FontData;
     gui_cursor Cursor;
+    gui_rgb Color;
 } gui_state;
 
 typedef struct gui_stb_bitmap
