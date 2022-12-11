@@ -9,6 +9,7 @@ u32 KEY_CODE_CACHE[MAX_KEY_CODE_CACHE];
 
 #define MAX_TEXTURE_CACHE_SIZE (MAX_KEY_CODE - MIN_KEY_CODE)
 SDL_Texture *TEXTURE_CACHE[MAX_TEXTURE_CACHE_SIZE];
+gui_char_data CHAR_DATA_CACHE[MAX_TEXTURE_CACHE_SIZE];
 
 #define KeyCodeIsAlpha(Code) ((Code) >= SDLK_a && (Code) <= SDLK_z)
 #define KeyModShift(Mod) (((Mod) & (KMOD_LSHIFT | KMOD_RSHIFT)) ? 1 : 0)
@@ -48,20 +49,28 @@ static void DeInit(SDL_Window *Window, SDL_Renderer *Renderer)
     SDL_Quit();
 }
 
-static void InitTextureCache(SDL_Renderer *Renderer, gui_state *State)
+static stbtt_fontinfo InitTextureCache(SDL_Renderer *Renderer, gui_state *State, f32 *Scale, f32 PixelHeight)
 {
-    stbtt_fontinfo Font;
+    stbtt_fontinfo FontInfo;
+    gui_char_data CharData;
     gui_stb_bitmap Bitmap;
-    Bitmap.Scale = 64;
     buffer *Buffer = ReadFileIntoBuffer(FONT_PATH[0]);
 
-    stbtt_InitFont(&Font, Buffer->Data, stbtt_GetFontOffsetForIndex(Buffer->Data, 0));
+    stbtt_InitFont(&FontInfo, Buffer->Data, stbtt_GetFontOffsetForIndex(Buffer->Data, 0));
+    *Scale = stbtt_ScaleForPixelHeight(&FontInfo, PixelHeight);
+    Bitmap.Scale = *Scale;
 
-    /* s32 Scale = stbtt_ScaleForPixelHeight(&Font, 20); */
     for (u32 I = MIN_KEY_CODE; I < MAX_KEY_CODE; I++)
     {
         u32 CacheIndex = I - MIN_KEY_CODE;
-        Bitmap.At = stbtt_GetCodepointBitmap(&Font, 0, 0.5, I, &Bitmap.Width, &Bitmap.Height, 0, 0);
+
+        stbtt_GetCodepointBox(&FontInfo, I,
+                              &CharData.X0, &CharData.Y0,
+                              &CharData.X1, &CharData.Y1);
+        Bitmap.At = stbtt_GetCodepointBitmap(&FontInfo, 0, *Scale, I,
+                                             &Bitmap.Width, &Bitmap.Height,
+                                             &CharData.XOffset, &CharData.YOffset);
+        printf("Offset (x,y): (%d,%d)\n", CharData.XOffset, CharData.YOffset);
         u32 Pixels[Bitmap.Width * Bitmap.Height];
 
         if(!(Bitmap.Width && Bitmap.Height)) continue;
@@ -88,8 +97,11 @@ static void InitTextureCache(SDL_Renderer *Renderer, gui_state *State)
         int UpdateTextureError =  SDL_UpdateTexture(Texture, 0, Pixels, Bitmap.Width * 4);
         assert(!UpdateTextureError);
         TEXTURE_CACHE[CacheIndex] = Texture;
+        CHAR_DATA_CACHE[CacheIndex] = CharData;
         stbtt_FreeBitmap(Bitmap.At, 0);
     }
+
+    return(FontInfo);
 }
 
 static SDL_Rect CreateRect(u32 x, u32 y, u32 w, u32 h)
@@ -199,39 +211,66 @@ void DisplayWindow()
     assert(Renderer);
 
     gui_state State = InitGuiState();
-    InitTextureCache(Renderer, &State);
 
-    SDL_ShowWindow(Window);
+    f32 PixelHeight = 32;
+    f32 Scale;
+    s32 AdvanceWidth;
+    s32 LeftSideBearing;
+    stbtt_fontinfo FontInfo = InitTextureCache(Renderer, &State, &Scale, PixelHeight);
+    gui_rect FontBoundingRect;
+    stbtt_GetFontBoundingBox(&FontInfo,
+                             &FontBoundingRect.X0, &FontBoundingRect.Y0,
+                             &FontBoundingRect.X1, &FontBoundingRect.Y1);
+    printf("Scale %f\n", Scale);
+    printf("Y0 %d\n", FontBoundingRect.Y0);
+    State.Cursor.Y = Scale - FontBoundingRect.Y0;
+    State.Cursor.X = 0;
 
     u32 DelayInMilliseconds = 32;
 
+    SDL_ShowWindow(Window);
+
     while(State.Running)
     {
+        State.Cursor.X = 0;
+        State.Cursor.Y = 32;
         b32 HadKeyboardEvent = HandleEvents(&State);
 
-        if(1 || HadKeyboardEvent)
+        if(HadKeyboardEvent)
         {
             SDL_RenderClear(Renderer);
 
             {
                 DEBUG_Rect.x = 0;
                 u32 I;
-                s32 Baseline = 12;
 
                 for(I = 0; I < State.Cursor.BufferIndex; ++I)
                 {
                     u32 KeyCodeIndex = KEY_CODE_CACHE[I];
-                    SDL_Texture *Texture = TEXTURE_CACHE[KeyCodeIndex];/*KeyCodeIndex];*/
-                    s32 Offset = 20;
+                    SDL_Texture *Texture = TEXTURE_CACHE[KeyCodeIndex];
+                    gui_char_data CharData = CHAR_DATA_CACHE[KeyCodeIndex];
 
-                    if((DEBUG_Rect.x + Offset) > SCREEN_WIDTH)
+                    DEBUG_Rect.x = State.Cursor.X + Scale * CharData.X0;
+                    DEBUG_Rect.y = State.Cursor.Y + Scale * CharData.Y0;
+                    DEBUG_Rect.w = (State.Cursor.X + Scale * CharData.X1) - DEBUG_Rect.x;
+                    DEBUG_Rect.h = (State.Cursor.Y + Scale * CharData.Y1) - DEBUG_Rect.y;
+
+                    stbtt_GetGlyphHMetrics(&FontInfo, KeyCodeIndex, &AdvanceWidth, &LeftSideBearing);
+                    s32 NextX = State.Cursor.X + Scale * AdvanceWidth;
+
+                    if(NextX > SCREEN_WIDTH)
                     {
-                        DEBUG_Rect.x = 0;
-                        Baseline += 28;
+                        State.Cursor.X = 0;
+                        State.Cursor.Y += 28;
+                    }
+                    else
+                    {
+                        State.Cursor.X = NextX;
                     }
 
-                    DEBUG_Rect.x += Offset;
-                    DEBUG_Rect.y = Baseline;
+                    DEBUG_Rect.x = State.Cursor.X + CharData.XOffset;
+                    DEBUG_Rect.y = State.Cursor.Y + CharData.YOffset;
+
                     SDL_RenderCopy(Renderer, Texture, NULL, &DEBUG_Rect);
                 }
             }

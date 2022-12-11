@@ -2,7 +2,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#define BUILD_GUI 0
+#define BUILD_GUI 1
 
 #if BUILD_GUI
 #include <SDL2/SDL.h>

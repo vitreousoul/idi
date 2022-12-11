@@ -28,4 +28,23 @@ typedef struct gui_stb_bitmap
     u8 *At;
 } gui_stb_bitmap;
 
+typedef struct gui_rect
+{
+    s32 X0;
+    s32 Y0;
+    s32 X1;
+    s32 Y1;
+} gui_rect;
+
+typedef struct gui_char_data
+{
+    s32 X0;
+    s32 Y0;
+    s32 X1;
+    s32 Y1;
+    s32 XOffset;
+    s32 YOffset;
+} gui_char_data;
+
+
 void DisplayWindow(void);
