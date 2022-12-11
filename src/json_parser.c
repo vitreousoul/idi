@@ -277,9 +277,8 @@ static json_token_list *ParseJsonBuffer(buffer *Buffer)
 static json_value *ParseJsonTokens(json_token_parser *Parser)
 {
     json_value *Result = malloc(sizeof(json_value));
-    b32 Running = True;
 
-    while(Running && Parser->Token != 0)
+    while(Parser->State == json_parser_state_Running && Parser->Token != 0)
     {
         switch(Parser->Token->Type)
         {
@@ -288,21 +287,21 @@ static json_value *ParseJsonTokens(json_token_parser *Parser)
             Result->Type = json_value_Boolean;
             Result->Value.Boolean = True;
             Parser->Token = Parser->Token->Next;
-            Running = False;
+            Parser->State = json_parser_state_Error;
         } break;
         case json_token_type_False:
         {
             Result->Type = json_value_Boolean;
             Result->Value.Boolean = False;
             Parser->Token = Parser->Token->Next;
-            Running = False;
+            Parser->State = json_parser_state_Error;
         } break;
         case json_token_type_String:
         {
             Result->Type = json_value_String;
             Result->Value.Range = Parser->Token->Range;
             Parser->Token = Parser->Token->Next;
-            Running = False;
+            Parser->State = json_parser_state_Error;
         } break;
         case json_token_type_OpenCurly:
         {
@@ -315,7 +314,7 @@ static json_value *ParseJsonTokens(json_token_parser *Parser)
             json_object *FirstItem = CurrentItem;
             Parser->Token = Parser->Token->Next;
 
-            while(Running && Parser->Token != 0)
+            while(Parser->State == json_parser_state_Running && Parser->Token != 0)
             {
                 switch(State)
                 {
@@ -337,14 +336,19 @@ static json_value *ParseJsonTokens(json_token_parser *Parser)
                         {
                             PrintError("Expected colon after key in json object");
                             Result = 0;
-                            Running = False;
+                            Parser->State = json_parser_state_Error;
                             break;
                         }
                     } break;
+                    case json_token_type_CloseCurly:
+                    {
+                        Parser->State = json_parser_state_Error;
+                        Parser->Token = Parser->Token->Next;
+                    } break;
                     default: {
-                        PrintError("Expected string for json object key");
+                        PrintError("Expected string for json object key or close-curly");
                         Result = 0;
-                        Running = False;
+                        Parser->State = json_parser_state_Error;
                         break;
                     }
                     }
@@ -361,20 +365,10 @@ static json_value *ParseJsonTokens(json_token_parser *Parser)
                     if(Parser->Token && Parser->Token->Type == json_token_type_Comma)
                     {
                         Parser->Token = Parser->Token->Next;
-                        State = Key;
+                        continue;
                     }
-                    else if(Parser->Token && Parser->Token->Type == json_token_type_CloseCurly)
-                    {
-                        Running = False;
-                        Parser->Token = Parser->Token->Next;
-                        Result->Value.Object = FirstItem;
-                    }
-                    else
-                    {
-                        PrintError("Unexpected token while parsing json object after value");
-                        Running = False;
-                        break;
-                    }
+
+                    State = Key;
                 } break;
                 }
             }
@@ -387,11 +381,11 @@ static json_value *ParseJsonTokens(json_token_parser *Parser)
             json_array *FirstItem = CurrentItem;
             Parser->Token = Parser->Token->Next;
 
-            while(Running && Parser->Token != 0)
+            while(Parser->State == json_parser_state_Running && Parser->Token != 0)
             {
                 if(Parser->Token->Type == json_token_type_CloseSquare)
                 {
-                    Running = False;
+                    Parser->State = json_parser_state_Error;
                     Parser->Token = Parser->Token->Next;
                     Result->Value.Array = FirstItem;
                 }
@@ -415,10 +409,15 @@ static json_value *ParseJsonTokens(json_token_parser *Parser)
         default:
         {
             PrintError("Unexpected token while parsing json value");
-            Running = False;
+            Parser->State = json_parser_state_Error;
         }
         }
     }
+
+    // NOTE: we use a "global" running value that is packed inside the parser,
+    // and upon exit we have to set it back to running. This feels really hacky and should
+    // probably be changed!
+    Parser->State = json_parser_state_Running;
 
     return(Result);
 }
@@ -469,6 +468,7 @@ json_value *ParseJson(buffer *Buffer)
     }
     json_token_parser Parser;
     Parser.Token = Token;
+    Parser.State = json_parser_state_Running;
 
     json_value *Result = ParseJsonTokens(&Parser);
     PrintJsonValue(Result, 0);

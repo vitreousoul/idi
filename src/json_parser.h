@@ -96,6 +96,7 @@ typedef enum json_parse_stack_item_state
 typedef struct json_token_parser
 {
     json_token_list *Token;
+    json_parser_state State;
 } json_token_parser;
 
 
