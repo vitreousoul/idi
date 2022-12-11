@@ -1,5 +1,5 @@
-#define SCREEN_WIDTH 480
-#define SCREEN_HEIGHT 320
+#define SCREEN_WIDTH 880
+#define SCREEN_HEIGHT 400
 
 #define MAX_KEY_CODE_CACHE 1 << 12
 u32 KEY_CODE_CACHE[MAX_KEY_CODE_CACHE];
@@ -19,8 +19,11 @@ char *FONT_PATH[] = {
     "src/PTMono-Regular.ttf",
     "src/ZapfDingbats.ttf",
     "src/Bodoni Ornaments.ttf",
-    "src/AppleGothic.ttf",
+    "src/Monaco.ttf",
 };
+
+#define FONT_PATH_INDEX 3
+#define FONT_HEIGHT_IN_PIXELS 20
 
 static result Init()
 {
@@ -55,7 +58,7 @@ static stbtt_fontinfo InitTextureCache(SDL_Renderer *Renderer, f32 *Scale, f32 P
     stbtt_fontinfo FontInfo;
     gui_char_data CharData;
     gui_stb_bitmap Bitmap;
-    buffer *Buffer = ReadFileIntoBuffer(FONT_PATH[0]);
+    buffer *Buffer = ReadFileIntoBuffer(FONT_PATH[FONT_PATH_INDEX]);
 
     stbtt_InitFont(&FontInfo, Buffer->Data, stbtt_GetFontOffsetForIndex(Buffer->Data, 0));
     *Scale = stbtt_ScaleForPixelHeight(&FontInfo, PixelHeight);
@@ -80,6 +83,15 @@ static stbtt_fontinfo InitTextureCache(SDL_Renderer *Renderer, f32 *Scale, f32 P
             {
                 u32 I = Y * Bitmap.Width + X;
                 u8 Value = Bitmap.At[I];
+                if(Value > 200)
+                {
+                    Value = 255;
+                }
+                else if(Value > 127)
+                {
+                    u8 Brighten = Value + (Value >> 1);
+                    Value = Value + Brighten > 255 ? 255 : Value + Brighten;
+                }
                 Pixels[I] =
                     (Value << 24) |
                     (Value << 16) |
@@ -87,9 +99,8 @@ static stbtt_fontinfo InitTextureCache(SDL_Renderer *Renderer, f32 *Scale, f32 P
                     (Value << 0);
             }
         }
-
         SDL_Texture *Texture = SDL_CreateTexture(Renderer,
-                                                 SDL_PIXELFORMAT_RGBA8888,
+                                                 SDL_PIXELFORMAT_RGBA32,
                                                  SDL_TEXTUREACCESS_STATIC,
                                                  Bitmap.Width,
                                                  Bitmap.Height);
