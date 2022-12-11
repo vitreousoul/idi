@@ -311,7 +311,8 @@ static json_value *ParseJsonTokens(json_token_parser *Parser)
             json_object *CurrentItem = malloc(sizeof(json_object));
             CurrentItem->Value = 0;
             CurrentItem->Next = 0;
-            json_object *FirstItem = CurrentItem;
+            // TODO: use FirstItem, right?
+            /* json_object *FirstItem = CurrentItem; */
             Parser->Token = Parser->Token->Next;
 
             while(Parser->State == json_parser_state_Running && Parser->Token != 0)
