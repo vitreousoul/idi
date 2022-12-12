@@ -16,10 +16,10 @@ gui_char_data CHAR_DATA_CACHE[MAX_TEXTURE_CACHE_SIZE];
 #define KeyModCaps(Mod) (((Mod) & KMOD_CAPS) ? 1 : 0)
 
 #define MAX_DIALOG_COUNT 3
-char *DIALOG[] = {
-    "Hello world",
-    "This is everything,",
-    "except what is left."
+char *DIALOG[3] = {
+    "little baby birds",
+    "bathing in a bowl of dirt",
+    "happy chirping sounds"
 };
 
 char *FONT_PATH[] = {
@@ -27,6 +27,7 @@ char *FONT_PATH[] = {
     "src/ZapfDingbats.ttf",
     "src/Bodoni Ornaments.ttf",
     "src/Monaco.ttf",
+    "src/Arial Black.ttf",
 };
 
 #define FONT_PATH_INDEX 3
@@ -154,7 +155,7 @@ static gui_state InitGuiState()
 static b32 HandleEvents(gui_state *State)
 {
     SDL_Event Event;
-    b32 HadKeyboardEvent = 0;
+    b32 EventNeedsRenderUpdate = 0;
 
     while(SDL_PollEvent(&Event))
     {
@@ -162,7 +163,10 @@ static b32 HandleEvents(gui_state *State)
         {
         case SDL_KEYDOWN:
         {
-            HadKeyboardEvent = 1;
+            EventNeedsRenderUpdate = 1;
+            State->Dialog.CharIndex = 0;
+            State->Dialog.Index = (State->Dialog.Index + 1) % MAX_DIALOG_COUNT;
+            State->Dialog.Writing = 1;
 
             if(Event.key.keysym.mod)
             {
@@ -223,30 +227,29 @@ static b32 HandleEvents(gui_state *State)
         }
     }
 
-    return HadKeyboardEvent;
+    return EventNeedsRenderUpdate;
 }
 
 static void RenderChar(SDL_Renderer *Renderer, gui_font_render_data FontRender,
-                       gui_state *State, SDL_Rect DEBUG_Rect, u32 KeyCodeIndex)
+                       gui_state *State, SDL_Rect DEBUG_Rect, u32 KeyCode)
 {
+    u32 KeyCodeIndex = KeyCode - MIN_KEY_CODE;
     SDL_Texture *Texture = TEXTURE_CACHE[KeyCodeIndex];
     gui_char_data CharData = CHAR_DATA_CACHE[KeyCodeIndex];
-    // s32 MinKern = 9999999;
-    // s32 MaxKern = 0;
 
     DEBUG_Rect.x = State->Cursor.X + FontRender.Scale * CharData.X0;
     DEBUG_Rect.y = State->Cursor.Y + FontRender.Scale * CharData.Y0;
     DEBUG_Rect.w = (State->Cursor.X + FontRender.Scale * CharData.X1) - DEBUG_Rect.x;
     DEBUG_Rect.h = (State->Cursor.Y + FontRender.Scale * CharData.Y1) - DEBUG_Rect.y;
 
-    stbtt_GetGlyphHMetrics(&FontRender.Info, KeyCodeIndex, &FontRender.AdvanceWidth, &FontRender.LeftSideBearing);
+    stbtt_GetGlyphHMetrics(&FontRender.Info, KeyCodeIndex,
+                           &FontRender.AdvanceWidth, &FontRender.LeftSideBearing);
     s32 KernAdvance = 0;
-    /* if(I < State->Cursor.BufferIndex - 1) */
-    /* { */
-    /*     KernAdvance = stbtt_GetCodepointKernAdvance(&FontRender.Info, KeyCodeIndex, KEY_CODE_CACHE[I + 1]); */
-    /*     if(KernAdvance < MinKern) MinKern = KernAdvance; */
-    /*     if(KernAdvance > MaxKern) MaxKern = KernAdvance; */
-    /* } */
+    char NextChar = DIALOG[State->Dialog.Index][State->Dialog.CharIndex + 1];
+    if(NextChar != 0)
+    {
+        KernAdvance = stbtt_GetCodepointKernAdvance(&FontRender.Info, KeyCodeIndex, NextChar);
+    }
     s32 NextX = State->Cursor.X + KernAdvance + FontRender.Scale * FontRender.AdvanceWidth;
 
     if(NextX > SCREEN_WIDTH)
@@ -263,6 +266,16 @@ static void RenderChar(SDL_Renderer *Renderer, gui_font_render_data FontRender,
     DEBUG_Rect.y = State->Cursor.Y + CharData.YOffset;
     SDL_SetTextureColorMod(Texture, State->Color.R, State->Color.G, State->Color.B);
     SDL_RenderCopy(Renderer, Texture, NULL, &DEBUG_Rect);
+}
+
+static void RenderDialog(SDL_Renderer *Renderer, gui_font_render_data FontRender,
+                         gui_state *State, SDL_Rect DEBUG_Rect)
+{
+    for (u32 I = 0; I < State->Dialog.CharIndex; I++)
+    {
+        char Char = DIALOG[State->Dialog.Index][I];
+        RenderChar(Renderer, FontRender, State, DEBUG_Rect, Char);
+    }
 }
 
 void DisplayWindow()
@@ -295,29 +308,44 @@ void DisplayWindow()
     State.Cursor.Y = FontRender.Scale - FontRender.BoundingRect.Y0;
     State.Cursor.X = 0;
 
-    u32 DelayInMilliseconds = 32;
+    u32 DelayInMilliseconds = 16;
 
     SDL_ShowWindow(Window);
 
     while(State.Running)
     {
-        State.Cursor.X = 0;
-        State.Cursor.Y = 32;
-        b32 HadKeyboardEvent = HandleEvents(&State);
+        b32 EventNeedsRenderUpdate = HandleEvents(&State);
 
-        if(HadKeyboardEvent)
+        {
+            State.Cursor.X = 0;
+            State.Cursor.Y = 32;
+        }
+
+        if(State.Dialog.Writing || EventNeedsRenderUpdate)
         {
             SDL_RenderClear(Renderer);
 
+            char Char = DIALOG[State.Dialog.Index][State.Dialog.CharIndex];
+            if(Char != 0)
+            {
+                ++State.Dialog.CharIndex;
+            }
+            else
+            {
+                State.Dialog.Writing = 0;
+            }
+
+            RenderDialog(Renderer, FontRender, &State, DEBUG_Rect);
+#if 0
             {
                 u32 I;
-
                 for(I = 0; I < State.Cursor.BufferIndex; ++I)
                 {
                     u32 KeyCodeIndex = KEY_CODE_CACHE[I];
-                    RenderChar(Renderer, FontRender, &State, DEBUG_Rect, KeyCodeIndex);
+                    RenderChar(Renderer, Dialog, FontRender, &State, DEBUG_Rect, KeyCodeIndex);
                 }
             }
+#endif
 
             SDL_RenderPresent(Renderer);
         }
