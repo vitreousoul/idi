@@ -15,6 +15,13 @@ gui_char_data CHAR_DATA_CACHE[MAX_TEXTURE_CACHE_SIZE];
 #define KeyModShift(Mod) (((Mod) & (KMOD_LSHIFT | KMOD_RSHIFT)) ? 1 : 0)
 #define KeyModCaps(Mod) (((Mod) & KMOD_CAPS) ? 1 : 0)
 
+#define MAX_DIALOG_COUNT 3
+char *DIALOG[] = {
+    "Hello world",
+    "This is everything,",
+    "except what is left."
+};
+
 char *FONT_PATH[] = {
     "src/PTMono-Regular.ttf",
     "src/ZapfDingbats.ttf",
@@ -137,6 +144,9 @@ static gui_state InitGuiState()
     Result.Color.R = 255;
     Result.Color.G = 255;
     Result.Color.B = 255;
+    Result.Dialog.Index = 0;
+    Result.Dialog.CharIndex = 0;
+    Result.Dialog.Writing = 1;
 
     return(Result);
 }
@@ -216,6 +226,45 @@ static b32 HandleEvents(gui_state *State)
     return HadKeyboardEvent;
 }
 
+static void RenderChar(SDL_Renderer *Renderer, gui_font_render_data FontRender,
+                       gui_state *State, SDL_Rect DEBUG_Rect, u32 KeyCodeIndex)
+{
+    SDL_Texture *Texture = TEXTURE_CACHE[KeyCodeIndex];
+    gui_char_data CharData = CHAR_DATA_CACHE[KeyCodeIndex];
+    // s32 MinKern = 9999999;
+    // s32 MaxKern = 0;
+
+    DEBUG_Rect.x = State->Cursor.X + FontRender.Scale * CharData.X0;
+    DEBUG_Rect.y = State->Cursor.Y + FontRender.Scale * CharData.Y0;
+    DEBUG_Rect.w = (State->Cursor.X + FontRender.Scale * CharData.X1) - DEBUG_Rect.x;
+    DEBUG_Rect.h = (State->Cursor.Y + FontRender.Scale * CharData.Y1) - DEBUG_Rect.y;
+
+    stbtt_GetGlyphHMetrics(&FontRender.Info, KeyCodeIndex, &FontRender.AdvanceWidth, &FontRender.LeftSideBearing);
+    s32 KernAdvance = 0;
+    /* if(I < State->Cursor.BufferIndex - 1) */
+    /* { */
+    /*     KernAdvance = stbtt_GetCodepointKernAdvance(&FontRender.Info, KeyCodeIndex, KEY_CODE_CACHE[I + 1]); */
+    /*     if(KernAdvance < MinKern) MinKern = KernAdvance; */
+    /*     if(KernAdvance > MaxKern) MaxKern = KernAdvance; */
+    /* } */
+    s32 NextX = State->Cursor.X + KernAdvance + FontRender.Scale * FontRender.AdvanceWidth;
+
+    if(NextX > SCREEN_WIDTH)
+    {
+        State->Cursor.X = 0;
+        State->Cursor.Y += 28;
+    }
+    else
+    {
+        State->Cursor.X = NextX;
+    }
+
+    DEBUG_Rect.x = State->Cursor.X + CharData.XOffset;
+    DEBUG_Rect.y = State->Cursor.Y + CharData.YOffset;
+    SDL_SetTextureColorMod(Texture, State->Color.R, State->Color.G, State->Color.B);
+    SDL_RenderCopy(Renderer, Texture, NULL, &DEBUG_Rect);
+}
+
 void DisplayWindow()
 {
     printf("DisplayWindow\n");
@@ -237,24 +286,18 @@ void DisplayWindow()
 
     gui_state State = InitGuiState();
 
-    f32 PixelHeight = 26;
-    f32 Scale;
-    s32 AdvanceWidth;
-    s32 LeftSideBearing;
-    stbtt_fontinfo FontInfo = InitTextureCache(Renderer, &Scale, PixelHeight);
-    gui_rect FontBoundingRect;
-    stbtt_GetFontBoundingBox(&FontInfo,
-                             &FontBoundingRect.X0, &FontBoundingRect.Y0,
-                             &FontBoundingRect.X1, &FontBoundingRect.Y1);
-    State.Cursor.Y = Scale - FontBoundingRect.Y0;
+    gui_font_render_data FontRender;
+    FontRender.PixelHeight = 26;
+    FontRender.Info = InitTextureCache(Renderer, &FontRender.Scale, FontRender.PixelHeight);
+    stbtt_GetFontBoundingBox(&FontRender.Info,
+                             &FontRender.BoundingRect.X0, &FontRender.BoundingRect.Y0,
+                             &FontRender.BoundingRect.X1, &FontRender.BoundingRect.Y1);
+    State.Cursor.Y = FontRender.Scale - FontRender.BoundingRect.Y0;
     State.Cursor.X = 0;
 
     u32 DelayInMilliseconds = 32;
 
     SDL_ShowWindow(Window);
-
-    s32 MinKern = 9999999;
-    s32 MaxKern = 0;
 
     while(State.Running)
     {
@@ -267,44 +310,12 @@ void DisplayWindow()
             SDL_RenderClear(Renderer);
 
             {
-                DEBUG_Rect.x = 0;
                 u32 I;
 
                 for(I = 0; I < State.Cursor.BufferIndex; ++I)
                 {
                     u32 KeyCodeIndex = KEY_CODE_CACHE[I];
-                    SDL_Texture *Texture = TEXTURE_CACHE[KeyCodeIndex];
-                    gui_char_data CharData = CHAR_DATA_CACHE[KeyCodeIndex];
-
-                    DEBUG_Rect.x = State.Cursor.X + Scale * CharData.X0;
-                    DEBUG_Rect.y = State.Cursor.Y + Scale * CharData.Y0;
-                    DEBUG_Rect.w = (State.Cursor.X + Scale * CharData.X1) - DEBUG_Rect.x;
-                    DEBUG_Rect.h = (State.Cursor.Y + Scale * CharData.Y1) - DEBUG_Rect.y;
-
-                    stbtt_GetGlyphHMetrics(&FontInfo, KeyCodeIndex, &AdvanceWidth, &LeftSideBearing);
-                    s32 KernAdvance = 0;
-                    if(I < State.Cursor.BufferIndex - 1)
-                    {
-                        KernAdvance = stbtt_GetCodepointKernAdvance(&FontInfo, KeyCodeIndex, KEY_CODE_CACHE[I + 1]);
-                        if(KernAdvance < MinKern) MinKern = KernAdvance;
-                        if(KernAdvance > MaxKern) MaxKern = KernAdvance;
-                    }
-                    s32 NextX = State.Cursor.X + KernAdvance + Scale * AdvanceWidth;
-
-                    if(NextX > SCREEN_WIDTH)
-                    {
-                        State.Cursor.X = 0;
-                        State.Cursor.Y += 28;
-                    }
-                    else
-                    {
-                        State.Cursor.X = NextX;
-                    }
-
-                    DEBUG_Rect.x = State.Cursor.X + CharData.XOffset;
-                    DEBUG_Rect.y = State.Cursor.Y + CharData.YOffset;
-                    SDL_SetTextureColorMod(Texture, State.Color.R, State.Color.G, State.Color.B);
-                    SDL_RenderCopy(Renderer, Texture, NULL, &DEBUG_Rect);
+                    RenderChar(Renderer, FontRender, &State, DEBUG_Rect, KeyCodeIndex);
                 }
             }
 
