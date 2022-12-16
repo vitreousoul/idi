@@ -63,6 +63,8 @@ static void DeInit(SDL_Window *Window, SDL_Renderer *Renderer)
 
 static stbtt_fontinfo InitTextureCache(SDL_Renderer *Renderer, f32 *Scale, f32 PixelHeight)
 {
+    u32 I;
+    s32 Y, X;
     stbtt_fontinfo FontInfo;
     gui_char_data CharData;
     gui_stb_bitmap Bitmap;
@@ -71,7 +73,7 @@ static stbtt_fontinfo InitTextureCache(SDL_Renderer *Renderer, f32 *Scale, f32 P
     stbtt_InitFont(&FontInfo, Buffer->Data, stbtt_GetFontOffsetForIndex(Buffer->Data, 0));
     *Scale = stbtt_ScaleForPixelHeight(&FontInfo, PixelHeight);
 
-    for (u32 I = MIN_KEY_CODE; I < MAX_KEY_CODE; I++)
+    for (I = MIN_KEY_CODE; I < MAX_KEY_CODE; I++)
     {
         u32 CacheIndex = I - MIN_KEY_CODE;
 
@@ -85,9 +87,9 @@ static stbtt_fontinfo InitTextureCache(SDL_Renderer *Renderer, f32 *Scale, f32 P
 
         if(!(Bitmap.Width && Bitmap.Height)) continue;
 
-        for(s32 Y = 0; Y < Bitmap.Height; ++Y)
+        for(Y = 0; Y < Bitmap.Height; ++Y)
         {
-            for(s32 X = 0; X < Bitmap.Width; ++X)
+            for(X = 0; X < Bitmap.Width; ++X)
             {
                 u32 I = Y * Bitmap.Width + X;
                 u8 Value = Bitmap.At[I];
@@ -271,7 +273,8 @@ static void RenderChar(SDL_Renderer *Renderer, gui_font_render_data FontRender,
 static void RenderDialog(SDL_Renderer *Renderer, gui_font_render_data FontRender,
                          gui_state *State, SDL_Rect DEBUG_Rect)
 {
-    for (u32 I = 0; I < State->Dialog.CharIndex; I++)
+    u32 I;
+    for (I = 0; I < State->Dialog.CharIndex; I++)
     {
         char Char = DIALOG[State->Dialog.Index][I];
         RenderChar(Renderer, FontRender, State, DEBUG_Rect, Char);
