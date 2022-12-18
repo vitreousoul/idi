@@ -1,17 +1,16 @@
 typedef enum json_token_type
 {
-    /* TODO: define explicit enum values once values stop changing */
-    json_token_type_Empty,
-    json_token_type_OpenCurly,
-    json_token_type_CloseCurly,
-    json_token_type_OpenSquare,
-    json_token_type_CloseSquare,
-    json_token_type_Comma,
-    json_token_type_Colon,
-    json_token_type_String,
-    json_token_type_Number,
-    json_token_type_True,
-    json_token_type_False,
+    json_token_type_Empty = 0,
+    json_token_type_OpenCurly = 1,
+    json_token_type_CloseCurly = 2,
+    json_token_type_OpenSquare = 3,
+    json_token_type_CloseSquare = 4,
+    json_token_type_Comma = 5,
+    json_token_type_Colon = 6,
+    json_token_type_String = 7,
+    json_token_type_Number = 8,
+    json_token_type_True = 9,
+    json_token_type_False = 10,
 } json_token_type;
 
 typedef struct json_buffer_range
@@ -20,12 +19,11 @@ typedef struct json_buffer_range
     size End;
 } json_buffer_range;
 
-typedef struct json_token_list
+typedef struct json_token
 {
     json_token_type Type;
     json_buffer_range Range;
-    struct json_token_list *Next;
-} json_token_list;
+} json_token;
 
 typedef enum json_value_type
 {
@@ -79,7 +77,7 @@ typedef enum json_parser_array_state
 
 typedef struct json_parser
 {
-    size Index;
+    u32 Index;
     json_parser_state State;
 } json_parser;
 
@@ -92,13 +90,6 @@ typedef enum json_parse_stack_item_state
     json_parse_stack_item_state_ArrayKey,
     json_parse_stack_item_state_ArrayValue,
 } json_parse_stack_item_state;
-
-typedef struct json_token_parser
-{
-    json_token_list *Token;
-    json_parser_state State;
-} json_token_parser;
-
 
 json_value *ParseJson(buffer *Buffer);
 char *GetJsonTokenTypeString(json_token_type Type);

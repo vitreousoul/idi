@@ -1,36 +1,8 @@
 #define CharIsStartOfBoolean(Char) ((Char) == 't' || (Char) == 'f')
 #define GetChar(Buffer, Parser) ((Buffer)->Data[(Parser)->Index])
 
-static json_token_list *CreateTokenListHead()
-{
-    json_token_list *Result = malloc(sizeof(json_token_list));
-    Result->Type = json_token_type_Empty;
-    Result->Range.Start = 0;
-    Result->Range.End = 0;
-    Result->Next = 0;
-
-    return(Result);
-}
-
-static json_token_list *AppendList(json_token_list *List, json_token_type Type, json_buffer_range Range)
-{
-    json_token_list *Result = malloc(sizeof(json_token_list));
-    Result->Type = Type;
-    Result->Range = Range;
-    Result->Next = 0;
-
-    List->Next = Result;
-
-    return(Result);
-}
-
-static json_token_list *AppendListWithTokenType(json_token_list *List, json_token_type Type)
-{
-    json_buffer_range Range = {0,0};
-    json_token_list *Result = AppendList(List, Type, Range);
-
-    return(Result);
-}
+#define MAX_JSON_TOKEN_CHUNK_COUNT 1 << 12
+json_token Tokens[MAX_JSON_TOKEN_CHUNK_COUNT];
 
 static void ParserError(json_parser *Parser, char *Message)
 {
@@ -173,11 +145,10 @@ static json_buffer_range ParseNumber(buffer *Buffer, json_parser *Parser)
     return(Result);
 }
 
-static json_token_list *ParseJsonBuffer(buffer *Buffer)
+static u32 ParseJsonBuffer(buffer *Buffer)
 {
-    json_token_list *Result = CreateTokenListHead();
-    json_token_list *Last = Result;
     json_parser Parser = { 0, json_parser_state_Running };
+    u32 TokenIndex = 0;
 
     while(Parser.State == json_parser_state_Running)
     {
@@ -193,33 +164,39 @@ static json_token_list *ParseJsonBuffer(buffer *Buffer)
         {
         case '{':
         {
-            Last = AppendListWithTokenType(Last, json_token_type_OpenCurly);
-            Parser.Index++;
+            Tokens[TokenIndex].Type = json_token_type_OpenCurly;
+            ++TokenIndex;
+            ++Parser.Index;
         } break;
         case '}':
         {
-            Last = AppendListWithTokenType(Last, json_token_type_CloseCurly);
-            Parser.Index++;
+            Tokens[TokenIndex].Type = json_token_type_CloseCurly;
+            ++TokenIndex;
+            ++Parser.Index;
         } break;
         case '[':
         {
-            Last = AppendListWithTokenType(Last, json_token_type_OpenSquare);
-            Parser.Index++;
+            Tokens[TokenIndex].Type = json_token_type_OpenSquare;
+            ++TokenIndex;
+            ++Parser.Index;
         } break;
         case ']':
         {
-            Last = AppendListWithTokenType(Last, json_token_type_CloseSquare);
-            Parser.Index++;
+            Tokens[TokenIndex].Type = json_token_type_CloseSquare;
+            ++TokenIndex;
+            ++Parser.Index;
         } break;
         case ',':
         {
-            Last = AppendListWithTokenType(Last, json_token_type_Comma);
-            Parser.Index++;
+            Tokens[TokenIndex].Type = json_token_type_Comma;
+            ++TokenIndex;
+            ++Parser.Index;
         } break;
         case ':':
         {
-            Last = AppendListWithTokenType(Last, json_token_type_Colon);
-            Parser.Index++;
+            Tokens[TokenIndex].Type = json_token_type_Colon;
+            ++TokenIndex;
+            ++Parser.Index;
         } break;
         case '"':
         {
@@ -230,8 +207,9 @@ static json_token_list *ParseJsonBuffer(buffer *Buffer)
                 ParserError(&Parser, "Invalid string token range");
             }
 
-            Last = AppendList(Last, json_token_type_String, Range);
-            Parser.Index++;
+            Tokens[TokenIndex].Type = json_token_type_String;
+            ++TokenIndex;
+            ++Parser.Index;
         } break;
         default:
         {
@@ -260,7 +238,8 @@ static json_token_list *ParseJsonBuffer(buffer *Buffer)
             if((Parser.State != json_parser_state_Error) &&
                (TokenType != json_token_type_Empty))
             {
-                Last = AppendList(Last, TokenType, TokenRange);
+                Tokens[TokenIndex].Type = TokenType;
+                ++TokenIndex;
             }
             else
             {
@@ -271,36 +250,46 @@ static json_token_list *ParseJsonBuffer(buffer *Buffer)
         }
     }
 
+    return(TokenIndex);
+}
+
+static b32 ValidJsonToken(json_token Token)
+{
+    b32 Result = (Token.Type > 0 && Token.Type <= 10);
+
     return(Result);
 }
 
-static json_value *ParseJsonTokens(json_token_parser *Parser)
+static json_value *ParseJsonTokens(json_parser *Parser, u32 TokenCount)
 {
     json_value *Result = malloc(sizeof(json_value));
 
-    while(Parser->State == json_parser_state_Running && Parser->Token != 0)
+    while(Parser->State == json_parser_state_Running &&
+          ValidJsonToken(Tokens[Parser->Index]) &&
+          Parser->Index < TokenCount)
     {
-        switch(Parser->Token->Type)
+        printf("Tokens[Parser->Index].Type = %d\n", Tokens[Parser->Index].Type);
+        switch(Tokens[Parser->Index].Type)
         {
         case json_token_type_True:
         {
             Result->Type = json_value_Boolean;
             Result->Value.Boolean = True;
-            Parser->Token = Parser->Token->Next;
+            ++Parser->Index;
             Parser->State = json_parser_state_Error;
         } break;
         case json_token_type_False:
         {
             Result->Type = json_value_Boolean;
             Result->Value.Boolean = False;
-            Parser->Token = Parser->Token->Next;
+            ++Parser->Index;
             Parser->State = json_parser_state_Error;
         } break;
         case json_token_type_String:
         {
             Result->Type = json_value_String;
-            Result->Value.Range = Parser->Token->Range;
-            Parser->Token = Parser->Token->Next;
+            Result->Value.Range = Tokens[Parser->Index].Range;
+            ++Parser->Index;
             Parser->State = json_parser_state_Error;
         } break;
         case json_token_type_OpenCurly:
@@ -313,25 +302,25 @@ static json_value *ParseJsonTokens(json_token_parser *Parser)
             CurrentItem->Next = 0;
             // TODO: use FirstItem, right?
             /* json_object *FirstItem = CurrentItem; */
-            Parser->Token = Parser->Token->Next;
+            ++Parser->Index;
 
-            while(Parser->State == json_parser_state_Running && Parser->Token != 0)
+            while(Parser->State == json_parser_state_Running && ValidJsonToken(Tokens[Parser->Index]))
             {
                 switch(State)
                 {
                 case Key:
                 {
-                    switch(Parser->Token->Type)
+                    switch(Tokens[Parser->Index].Type)
                     {
                     case json_token_type_String:
                     {
-                        CurrentItem->Key = Parser->Token->Range;
-                        Parser->Token = Parser->Token->Next;
+                        CurrentItem->Key = Tokens[Parser->Index].Range;
+                        ++Parser->Index;
 
-                        if(Parser->Token && Parser->Token->Type == json_token_type_Colon)
+                        if(Tokens[Parser->Index].Type == json_token_type_Colon)
                         {
                             State = Value;
-                            Parser->Token = Parser->Token->Next;
+                            ++Parser->Index;
                         }
                         else
                         {
@@ -344,7 +333,7 @@ static json_value *ParseJsonTokens(json_token_parser *Parser)
                     case json_token_type_CloseCurly:
                     {
                         Parser->State = json_parser_state_Error;
-                        Parser->Token = Parser->Token->Next;
+                        ++Parser->Index;
                     } break;
                     default: {
                         PrintError("Expected string for json object key or close-curly");
@@ -356,16 +345,16 @@ static json_value *ParseJsonTokens(json_token_parser *Parser)
                 } break;
                 case Value:
                 {
-                    CurrentItem->Value = ParseJsonTokens(Parser);
+                    CurrentItem->Value = ParseJsonTokens(Parser, TokenCount);
                     json_object *NextItem = malloc(sizeof(json_object));
                     NextItem->Value = 0;
                     NextItem->Next = 0;
                     CurrentItem->Next = NextItem;
                     CurrentItem = NextItem;
 
-                    if(Parser->Token && Parser->Token->Type == json_token_type_Comma)
+                    if(Tokens[Parser->Index].Type == json_token_type_Comma)
                     {
-                        Parser->Token = Parser->Token->Next;
+                        ++Parser->Index;
                         continue;
                     }
 
@@ -380,28 +369,28 @@ static json_value *ParseJsonTokens(json_token_parser *Parser)
             Result->Type = json_value_Array;
             json_array *CurrentItem = malloc(sizeof(json_array));
             json_array *FirstItem = CurrentItem;
-            Parser->Token = Parser->Token->Next;
+            ++Parser->Index;
 
-            while(Parser->State == json_parser_state_Running && Parser->Token != 0)
+            while(Parser->State == json_parser_state_Running && ValidJsonToken(Tokens[Parser->Index]))
             {
-                if(Parser->Token->Type == json_token_type_CloseSquare)
+                if(Tokens[Parser->Index].Type == json_token_type_CloseSquare)
                 {
                     Parser->State = json_parser_state_Error;
-                    Parser->Token = Parser->Token->Next;
+                    ++Parser->Index;
                     Result->Value.Array = FirstItem;
                 }
                 else
                 {
-                    CurrentItem->Value = ParseJsonTokens(Parser);
+                    CurrentItem->Value = ParseJsonTokens(Parser, TokenCount);
                     json_array *NextItem = malloc(sizeof(json_array));
                     NextItem->Value = 0;
                     NextItem->Next = 0;
                     CurrentItem->Next = NextItem;
                     CurrentItem = NextItem;
 
-                    if(Parser->Token && Parser->Token->Type == json_token_type_Comma)
+                    if(Tokens[Parser->Index].Type == json_token_type_Comma)
                     {
-                        Parser->Token = Parser->Token->Next;
+                        ++Parser->Index;
                         continue;
                     }
                 }
@@ -462,16 +451,13 @@ static void PrintJsonValue(json_value *Value, u32 Depth)
 
 json_value *ParseJson(buffer *Buffer)
 {
-    json_token_list *Token = ParseJsonBuffer(Buffer);
-    if(Token && Token->Type == json_token_type_Empty && Token->Next)
-    {
-        Token = Token->Next;
-    }
-    json_token_parser Parser;
-    Parser.Token = Token;
-    Parser.State = json_parser_state_Running;
+    u32 TokenCount = ParseJsonBuffer(Buffer);
 
-    json_value *Result = ParseJsonTokens(&Parser);
+    json_parser Parser;
+    Parser.State = json_parser_state_Running;
+    Parser.Index = 0;
+
+    json_value *Result = ParseJsonTokens(&Parser, TokenCount);
     PrintJsonValue(Result, 0);
 
     return(Result);
