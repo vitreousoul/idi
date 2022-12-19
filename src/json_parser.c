@@ -268,7 +268,6 @@ static json_value *ParseJsonTokens(json_parser *Parser, u32 TokenCount)
           ValidJsonToken(Tokens[Parser->Index]) &&
           Parser->Index < TokenCount)
     {
-        printf("Tokens[Parser->Index].Type = %d\n", Tokens[Parser->Index].Type);
         switch(Tokens[Parser->Index].Type)
         {
         case json_token_type_True:
@@ -300,6 +299,7 @@ static json_value *ParseJsonTokens(json_parser *Parser, u32 TokenCount)
             json_object *CurrentItem = malloc(sizeof(json_object));
             CurrentItem->Value = 0;
             CurrentItem->Next = 0;
+            Result->Value.Object = CurrentItem;
             // TODO: use FirstItem, right?
             /* json_object *FirstItem = CurrentItem; */
             ++Parser->Index;
