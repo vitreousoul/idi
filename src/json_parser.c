@@ -301,8 +301,6 @@ static json_value *ParseJsonTokens(json_parser *Parser, u32 TokenCount)
             CurrentItem->Value = 0;
             CurrentItem->Next = 0;
             Result->Value.Object = CurrentItem;
-            // TODO: use FirstItem, right?
-            /* json_object *FirstItem = CurrentItem; */
             ++Parser->Index;
 
             while(Parser->State == json_parser_state_Running && ValidJsonToken(Tokens[Parser->Index]))
@@ -366,7 +364,7 @@ static json_value *ParseJsonTokens(json_parser *Parser, u32 TokenCount)
         } break;
         case json_token_type_OpenSquare:
         {
-            // TODO: a trailing comma is required for array items to be parse correctly, so we should fix that :(
+            // TODO: allow trailing commas in objects. Currently trailing commas cause objects to have an extra value stored in them.
             Result->Type = json_value_Array;
             json_array *CurrentItem = malloc(sizeof(json_array));
             json_array *FirstItem = CurrentItem;
