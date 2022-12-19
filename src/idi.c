@@ -11,7 +11,7 @@
 int main()
 {
     int Result = 0;
-    /* TODO: read from file so we can test parsing strings without have to remove escapes */
+
     buffer *Source = ReadFileIntoBuffer("./idi.idi");
     ParseJson(Source);
 
@@ -20,5 +20,5 @@ int main()
 #endif
     FreeBuffer(Source);
 
-    return(Result);
+    return Result;
 }

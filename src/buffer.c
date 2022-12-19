@@ -13,39 +13,3 @@ void FreeBuffer(buffer *Buffer)
     free(Buffer->Data);
     free(Buffer);
 }
-
-static size NullTerminatedStringLength(char *String)
-{
-    size Result = 0;
-
-    while(String[Result] != '\0')
-    {
-        Result++;
-    }
-
-    return Result;
-}
-
-buffer *BufferFromNullTerminatedString(char *String)
-{
-    size StringLength = NullTerminatedStringLength(String);
-    buffer *Result = CreateBuffer(StringLength);
-    size Index;
-
-    for (Index = 0; String[Index] != '\0'; Index++)
-    {
-        Result->Data[Index] = String[Index];
-    }
-
-    return Result;
-}
-
-void DebugPrintBuffer(buffer *Buffer)
-{
-    size Index;
-
-    for(Index = 0; Index < Buffer->Size; Index++)
-    {
-        printf("%c", Buffer->Data[Index]);
-    }
-}
