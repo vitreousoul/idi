@@ -48,13 +48,13 @@ static void ParseKeyword(buffer *Buffer, json_parser *Parser, char *Keyword)
 
 static json_buffer_range ParseString(buffer *Buffer, json_parser *Parser)
 {
-    json_buffer_range Result;
-    Result.Start = Parser->Index;
-    Result.End = Result.Start;
+    json_buffer_range Result = {0,0};
 
     if(GetChar(Buffer, Parser) == '"')
     {
         Parser->Index++;
+        Result.Start = Parser->Index;
+        Result.End = Result.Start;
 
         for(;;)
         {
@@ -208,6 +208,7 @@ static u32 ParseJsonBuffer(buffer *Buffer)
             }
 
             Tokens[TokenIndex].Type = json_token_type_String;
+            Tokens[TokenIndex].Range = Range;
             ++TokenIndex;
             ++Parser.Index;
         } break;
@@ -412,7 +413,7 @@ static json_value *ParseJsonTokens(json_parser *Parser, u32 TokenCount)
     return(Result);
 }
 
-static void PrintJsonValue(json_value *Value, u32 Depth)
+static void PrintJsonValue(buffer *Buffer, json_value *Value, u32 Depth)
 {
     u32 I;
 
@@ -423,7 +424,13 @@ static void PrintJsonValue(json_value *Value, u32 Depth)
     for(I = 0; I < Depth; I++) printf(" ");
     switch(Value->Type)
     {
-    case json_value_String: { printf("String\n"); } break;
+    case json_value_String:
+    {
+        u32 CharCount = Value->Value.Range.End - Value->Value.Range.Start;
+        u8 StringValue[CharCount];
+        memcpy(StringValue, Buffer->Data + Value->Value.Range.Start, CharCount);
+        printf("String %s\n", StringValue);
+    } break;
     case json_value_Number: { printf("Number\n"); } break;
     case json_value_Boolean: { printf("Boolean\n"); } break;
     case json_value_Object:
@@ -432,7 +439,7 @@ static void PrintJsonValue(json_value *Value, u32 Depth)
         printf("Object\n");
         while(Object && Object->Value)
         {
-            PrintJsonValue(Object->Value, Depth + 4);
+            PrintJsonValue(Buffer, Object->Value, Depth + 4);
             Object = Object->Next;
         }
     } break;
@@ -442,7 +449,7 @@ static void PrintJsonValue(json_value *Value, u32 Depth)
         printf("Array\n");
         while(Array)
         {
-            PrintJsonValue(Array->Value, Depth + 4);
+            PrintJsonValue(Buffer, Array->Value, Depth + 4);
             Array = Array->Next;
         }
     }
@@ -458,7 +465,7 @@ json_value *ParseJson(buffer *Buffer)
     Parser.Index = 0;
 
     json_value *Result = ParseJsonTokens(&Parser, TokenCount);
-    PrintJsonValue(Result, 0);
+    PrintJsonValue(Buffer, Result, 0);
 
     return(Result);
 }
