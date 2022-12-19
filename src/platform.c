@@ -34,11 +34,6 @@ void PrintLog(char *Type, char *Message)
     printf("[ %s ] %s\n", Type, Message);
 }
 
-void PrintMessage(char *Message)
-{
-    PrintLog("Log", Message);
-}
-
 void PrintError(char *Message)
 {
     PrintLog("Error", Message);
