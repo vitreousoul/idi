@@ -67,29 +67,14 @@ typedef enum json_parser_state
     json_parser_state_Running = 0,
     json_parser_state_Error = 1,
     json_parser_state_EndOfSource = 2,
+    json_parser_state_Success = 3,
 } json_parser_state;
-
-typedef enum json_parser_array_state
-{
-    json_parser_array_state_Value = 0,
-    json_parser_array_state_Comma = 1,
-} json_parser_array_state;
 
 typedef struct json_parser
 {
     u32 Index;
     json_parser_state State;
 } json_parser;
-
-typedef enum json_parse_stack_item_state
-{
-    json_parse_stack_item_state_Initial,
-    json_parse_stack_item_state_ObjectKey,
-    json_parse_stack_item_state_ObjectValue,
-    json_parse_stack_item_state_ObjectRepeat,
-    json_parse_stack_item_state_ArrayKey,
-    json_parse_stack_item_state_ArrayValue,
-} json_parse_stack_item_state;
 
 json_value *ParseJson(buffer *Buffer);
 char *GetJsonTokenTypeString(json_token_type Type);

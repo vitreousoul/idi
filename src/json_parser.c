@@ -331,7 +331,7 @@ static json_value *ParseJsonTokens(json_parser *Parser, u32 TokenCount)
                     } break;
                     case json_token_type_CloseCurly:
                     {
-                        Parser->State = json_parser_state_Error;
+                        Parser->State = json_parser_state_Success;
                         ++Parser->Index;
                     } break;
                     default: {
@@ -364,7 +364,6 @@ static json_value *ParseJsonTokens(json_parser *Parser, u32 TokenCount)
         } break;
         case json_token_type_OpenSquare:
         {
-            // TODO: allow trailing commas in objects. Currently trailing commas cause objects to have an extra value stored in them.
             Result->Type = json_value_Array;
             json_array *CurrentItem = malloc(sizeof(json_array));
             json_array *FirstItem = CurrentItem;
