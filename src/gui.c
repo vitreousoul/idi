@@ -15,11 +15,34 @@ gui_char_data CHAR_DATA_CACHE[MAX_TEXTURE_CACHE_SIZE];
 #define KeyModShift(Mod) (((Mod) & (KMOD_LSHIFT | KMOD_RSHIFT)) ? 1 : 0)
 #define KeyModCaps(Mod) (((Mod) & KMOD_CAPS) ? 1 : 0)
 
-#define MAX_DIALOG_COUNT 3
-char *DIALOG[3] = {
-    "little baby birds",
+#define MAX_DIALOG_COUNT 26
+char *DIALOG[MAX_DIALOG_COUNT] = {
+    "any time is present",
     "bathing in a bowl of dirt",
-    "happy chirping sounds"
+    "crisps are just chips",
+    "dead of winter",
+    "eastward wind",
+    "forgotten songs",
+    "grubs in the dirt",
+    "happy chirping sounds",
+    "iridescent hues",
+    "jaunty geese",
+    "kelp pancakes",
+    "little baby birds",
+    "misty mountains",
+    "neural pathways",
+    "oily doilies",
+    "present company",
+    "querent envy",
+    "really really big",
+    "sacred words",
+    "tinny biddies",
+    "unheard birds",
+    "vulture chores",
+    "wasp nest",
+    "x-ray play",
+    "yonder over there",
+    "zzz so sleepy",
 };
 
 char *FONT_PATH[] = {
@@ -30,7 +53,7 @@ char *FONT_PATH[] = {
     "src/Arial Black.ttf",
 };
 
-#define FONT_PATH_INDEX 3
+#define FONT_PATH_INDEX 4
 #define FONT_HEIGHT_IN_PIXELS 20
 
 static result Init()
