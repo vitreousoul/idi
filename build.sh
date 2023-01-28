@@ -1,9 +1,14 @@
 #!/usr/bin/env bash
 
 DEBUG=0
+GUI=0
 SOURCE_FILES="src/idi.c"
-LIBS="`sdl2-config --cflags --libs`"
+GUI_LIBS="`sdl2-config --cflags --libs`"
 SETTINGS="-std=c89 -Wall -Wextra -Wstrict-prototypes -Wold-style-definition -Wmissing-prototypes -Wmissing-declarations -Wno-comment"
+
+if [ $GUI -eq 0 ]; then
+    GUI_LIBS=""
+fi
 
 if [ $DEBUG -eq 0 ]; then
     echo "Optimized build";
@@ -18,7 +23,7 @@ fi
 
 echo $TARGET
 echo $SETTINGS
-echo $LIBS
+echo $GUI_LIBS
 echo $SOURCE_FILES
 
-gcc $TARGET $SETTINGS $LIBS $SOURCE_FILES
+gcc $TARGET $SETTINGS $GUI_LIBS $SOURCE_FILES

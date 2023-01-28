@@ -6,6 +6,7 @@
 
 // code
 #include "types.h"
+#include "buf.h"
 #include "buffer.h"
 #include "platform.h"
 #include "json_parser.h"
