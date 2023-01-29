@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-DEBUG=0
+DEBUG=1
 GUI=0
 SOURCE_FILES="src/idi.c"
 GUI_LIBS="`sdl2-config --cflags --libs`"
