@@ -31,7 +31,8 @@ static u8 Peek(buffer *Source, size *I)
 {
     if(in_bounds(Source, I))
     {
-        return 1;
+        size NextI = *I + 1;
+        return get_char(Source, &NextI);
     }
     else
     {
@@ -83,6 +84,7 @@ static token ScanDigit(buffer *Source, size *I)
             else
             {
                 Result.Kind = token_kind_Float;
+                next(I);
             }
         }
         else if(char_is_digit(Char))
@@ -110,7 +112,7 @@ static token ParseToken(buffer *Source, size *I)
         case ';': case ':':  case ',':
         singlechar:
             Token.Kind = get_char(Source, I);
-            ++(*I);
+            next(I);
             Running = 0;
             break;
         case '"': case '\'': case '`':
@@ -131,6 +133,7 @@ static token ParseToken(buffer *Source, size *I)
         case '0': case '1': case '2': case '3': case '4':
         case '5': case '6': case '7': case '8': case '9':
             Token = ScanDigit(Source, I);
+            Running = 0;
             break;
         default:
             Running = 0;
@@ -173,9 +176,19 @@ u32 TestJsLex()
         {
             printf("%c ", Tokens[I].Kind);
         }
+        else if(Tokens[I].Kind == 0)
+        {
+            printf("NONE ");
+        }
         else
         {
-            printf("%d ", Tokens[I].Kind);
+            switch(Tokens[I].Kind)
+            {
+            case token_kind_String: printf("String"); break;
+            case token_kind_Integer: printf("Integer"); break;
+            case token_kind_Float: printf("Float"); break;
+            default: printf("<no token>"); break;
+            }
         }
     }
     printf("\n");
