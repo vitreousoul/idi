@@ -21,7 +21,8 @@ typedef enum token_kind
     token_kind_Equals = '=',
 
     token_kind_String = 128,
-    token_kind_Number,
+    token_kind_Integer,
+    token_kind_Float,
 } token_kind;
 
 typedef struct token
