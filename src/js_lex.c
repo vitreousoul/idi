@@ -1,5 +1,5 @@
-#define in_bounds(buffer, i) ((*i) < (buffer)->Size)
-#define get_char(buffer, i) ((buffer)->Data[(*i)])
+#define in_bounds(lexer) ((lexer)->I < (lexer)->Source.Size)
+#define get_char(lexer) ((lexer)->Source.Data[(lexer)->I])
 #define char_is_digit(c) ((c) >= '0' && (c) <= '9')
 #define char_is_alpha_lower(c) ((c) >= 'a' && (c) <= 'z')
 #define char_is_alpha_upper(c) ((c) >= 'A' && (c) <= 'Z')
@@ -8,14 +8,14 @@
 #define next(i) ((*(i))++)
 #define next_index(i) ((*(i))+1)
 
-static void EatSpace(buffer *Source, size *I)
+static void EatSpace(lexer *Lexer)
 {
-    while(in_bounds(Source, I))
+    while(in_bounds(Lexer))
     {
-        switch(get_char(Source, I))
+        switch(get_char(Lexer))
         {
         case ' ': case '\n': case '\r': case '\t':
-            ++*I;
+            Lexer->I++;
             break;
         default:
             goto end;
@@ -31,12 +31,11 @@ static token EmptyToken()
     return Result;
 }
 
-static u8 Peek(buffer *Source, size *I)
+static u8 Peek(lexer *Lexer)
 {
-    if(in_bounds(Source, I))
+    if(in_bounds(Lexer))
     {
-        size NextI = *I + 1;
-        return get_char(Source, &NextI);
+        return get_char(Lexer);
     }
     else
     {
@@ -44,42 +43,42 @@ static u8 Peek(buffer *Source, size *I)
     }
 }
 
-static token ScanString(buffer *Source, size *I)
+static token ScanString(lexer *Lexer)
 {
     token Result;
     Result.Kind = token_kind_None;
-    u8 MatchQuote = get_char(Source, I);
-    next(I);
-    Result.Value.String.Start = *I;
-    size StartI = *I;
-    while(in_bounds(Source, I))
+    u8 MatchQuote = get_char(Lexer);
+    ++Lexer->I;
+    Result.Value.String.Start = Lexer->I;
+    size StartI = Lexer->I;
+    while(in_bounds(Lexer))
     {
-        u8 Char = get_char(Source, I);
+        u8 Char = get_char(Lexer);
         if(Char == MatchQuote)
         {
             Result.Kind = token_kind_String;
             Result.Value.String.Start = StartI;
-            Result.Value.String.End = *I;
-            next(I);
+            Result.Value.String.End = Lexer->I;
+            ++Lexer->I;
             break;
         }
         else if(Char == '\\')
         {
-            next(I);
+            ++Lexer->I;
         }
-        next(I);
+        ++Lexer->I;
     }
     return Result;
 }
 
-static token ScanDigit(buffer *Source, size *I)
+static token ScanDigit(lexer *Lexer)
 {
     token Result;
     Result.Kind = token_kind_Integer;
-    Result.Value.String.Start = *I;
-    while(in_bounds(Source, I))
+    Result.Value.String.Start = Lexer->I;
+    while(in_bounds(Lexer))
     {
-        u8 Char = get_char(Source, I);
+        u8 Char = get_char(Lexer);
         if(Char == '.')
         {
             if(Result.Kind == token_kind_Float)
@@ -90,12 +89,12 @@ static token ScanDigit(buffer *Source, size *I)
             else
             {
                 Result.Kind = token_kind_Float;
-                next(I);
+                ++Lexer->I;
             }
         }
         else if(char_is_digit(Char))
         {
-            next(I);
+            ++Lexer->I;
         }
         else
         {
@@ -105,44 +104,44 @@ static token ScanDigit(buffer *Source, size *I)
     return Result;
 }
 
-static token ScanIdentifier(buffer *Source, size *I)
+static token ScanIdentifier(lexer *Lexer)
 {
     token Result;
     Result.Kind = token_kind_Identifier;
-    Result.Value.String.Start = *I;
-    while(in_bounds(Source, I) && char_is_alpha_num(get_char(Source, I)))
+    Result.Value.String.Start = Lexer->I;
+    while(in_bounds(Lexer) && char_is_alpha_num(get_char(Lexer)))
     {
-        next(I);
+        ++Lexer->I;
     }
-    Result.Value.String.End = (*I);
+    Result.Value.String.End = (Lexer->I);
     return Result;
 }
 
-static token ParseToken(buffer *Source, size *I)
+static token ParseToken(lexer *Lexer)
 {
     token Token = EmptyToken();
     b32 Running = 1;
-    EatSpace(Source, I);
-    while(Running && in_bounds(Source, I))
+    EatSpace(Lexer);
+    while(Running && in_bounds(Lexer))
     {
-        printf("char %c\n", get_char(Source, I));
-        switch(get_char(Source, I))
+        printf("char %c\n", get_char(Lexer));
+        switch(get_char(Lexer))
         {
         case '{': case '}': case '[': case ']': case '(': case ')':
         case ';': case ':':  case ',': case '=':
         singlechar:
-            Token.Kind = get_char(Source, I);
-            next(I);
+            Token.Kind = get_char(Lexer);
+            ++Lexer->I;
             Running = 0;
             break;
         case '"': case '\'': case '`':
-            Token = ScanString(Source, I);
+            Token = ScanString(Lexer);
             Running = 0;
             break;
         case '.':
-            if(char_is_digit(Peek(Source, I)))
+            if(char_is_digit(Peek(Lexer)))
             {
-                Token = ScanDigit(Source, I);
+                Token = ScanDigit(Lexer);
             }
             else
             {
@@ -152,7 +151,7 @@ static token ParseToken(buffer *Source, size *I)
             break;
         case '0': case '1': case '2': case '3': case '4':
         case '5': case '6': case '7': case '8': case '9':
-            Token = ScanDigit(Source, I);
+            Token = ScanDigit(Lexer);
             Running = 0;
             break;
         case 'a': case 'b': case 'c': case 'd': case 'e':
@@ -160,7 +159,7 @@ static token ParseToken(buffer *Source, size *I)
         case 'k': case 'l': case 'm': case 'n': case 'o':
         case 'p': case 'q': case 'r': case 's': case 't':
         case 'u': case 'v': case 'w': case 'x': case 'y': case 'z':
-            Token = ScanIdentifier(Source, I);
+            Token = ScanIdentifier(Lexer);
             Running = 0;
             break;
         default:
@@ -171,16 +170,15 @@ static token ParseToken(buffer *Source, size *I)
     return Token;
 }
 
-static token *LexJs(buffer *Source)
+static token *LexJs(lexer *Lexer)
 {
     token *Result = 0;
-    size I = 0;
-    while(in_bounds(Source, &I))
+    while(in_bounds(Lexer))
     {
-        token Token = ParseToken(Source, &I);
+        token Token = ParseToken(Lexer);
         if(Token.Kind != token_kind_None)
         {
-            printf("pushing token %d %lu\n", Token.Kind, I);
+            printf("pushing token %d %lu\n", Token.Kind, Lexer->I);
             vec_push(Result, Token);
         }
         else
@@ -195,25 +193,26 @@ u32 TestJsLex()
 {
     printf("\nTestJsLex:\n");
     u32 Result = 0;
-    buffer *Source = ReadFileIntoBuffer("../test/test.js");
-    u32 I;
-    token *Tokens = LexJs(Source);
+    size I;
+    char *FilePath = "../test/test.js";
+    lexer Lexer = {*ReadFileIntoBuffer(FilePath),0};
+    token *Tokens = LexJs(&Lexer);
     printf("Tokens %lu\n", vec_len(Tokens));
     for(I = 0; I < vec_len(Tokens); ++I)
     {
-        if(Tokens[I].Kind < 128)
+        if(Tokens[Lexer.I].Kind < 128)
         {
-            printf("%c ", Tokens[I].Kind);
+            printf("%c ", Tokens[Lexer.I].Kind);
         }
-        else if(Tokens[I].Kind == 0)
+        else if(Tokens[Lexer.I].Kind == 0)
         {
             printf("NONE ");
         }
         else
         {
-            token Token = Tokens[I];
+            token Token = Tokens[Lexer.I];
             u32 StringLength = (u32)Token.Value.String.End - Token.Value.String.Start;
-            u8 *SourceStart = &Source->Data[Token.Value.String.Start];
+            u8 *SourceStart = &Lexer.Source.Data[Token.Value.String.Start];
             switch(Token.Kind)
             {
             case token_kind_String: printf("<String %.*s>", StringLength, SourceStart); break;

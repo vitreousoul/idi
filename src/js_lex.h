@@ -39,4 +39,10 @@ typedef struct token
     } Value;
 } token;
 
+typedef struct lexer
+{
+    buffer Source;
+    size I;
+} lexer;
+
 u32 TestJsLex(void);
