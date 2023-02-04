@@ -101,6 +101,7 @@ static token ScanDigit(lexer *Lexer)
             break;
         }
     }
+    Result.Value.String.End = Lexer->I;
     return Result;
 }
 
@@ -127,12 +128,12 @@ static token ParseToken(lexer *Lexer)
         switch(get_char(Lexer))
         {
         case '{': case '}': case '[': case ']': case '(': case ')':
-        case ';': case ':':  case ',': case '=':
+        case ';': case ':':  case ',': case '=': case '*':
         singlechar:
-            Token.Kind = get_char(Lexer);
-            ++Lexer->I;
-            Running = 0;
-            break;
+                Token.Kind = get_char(Lexer);
+                ++Lexer->I;
+                Running = 0;
+                break;
         case '"': case '\'': case '`':
             Token = ScanString(Lexer);
             Running = 0;
@@ -191,16 +192,29 @@ u32 TestJsLex()
 {
     printf("\nTestJsLex:\n");
     u32 Result = 0;
-    size I;
+    size I, J;
+    u32 Indent = 0;
     char *FilePath = "../test/test.js";
     lexer Lexer = {*ReadFileIntoBuffer(FilePath),0};
     token *Tokens = LexJs(&Lexer);
     printf("Tokens %lu\n", vec_len(Tokens));
     for(I = 0; I < vec_len(Tokens); ++I)
     {
-        if(Tokens[I].Kind < 128)
+        token Token = Tokens[I];
+        // indentation
+        if(Token.Kind == '{' || Token.Kind == '(' || Token.Kind == '[') {
+            for(J = 0; J < Indent; J++) printf(" ");
+            Indent += 4;
+        } else if(Token.Kind == '}' || Token.Kind == ')' || Token.Kind == ']') {
+            Indent -= 4;
+            for(J = 0; J < Indent; J++) printf(" ");
+        } else {
+            for(J = 0; J < Indent; J++) printf(" ");
+        }
+        // print token
+        if(Token.Kind < 128)
         {
-            printf("%c ", Tokens[I].Kind);
+            printf("(char '%c')", Token.Kind);
         }
         else if(Tokens[I].Kind == 0)
         {
@@ -213,13 +227,22 @@ u32 TestJsLex()
             u8 *SourceStart = &Lexer.Source.Data[Token.Value.String.Start];
             switch(Token.Kind)
             {
-            case token_kind_String: printf("<String %.*s>", StringLength, SourceStart); break;
-            case token_kind_Integer: printf("<Integer %.*s>", StringLength, SourceStart); break;
-            case token_kind_Float: printf("<Float %.*s>", StringLength, SourceStart); break;
-            case token_kind_Identifier: printf("<Identifier %.*s>", StringLength, SourceStart); break;
-            default: printf("<no token>"); break;
+            case token_kind_String:
+                printf("(str \"%.*s\")", StringLength, SourceStart);
+                break;
+            case token_kind_Integer:
+                printf("(int %.*s)", StringLength, SourceStart);
+                break;
+            case token_kind_Float:
+                printf("(float %.*s)", StringLength, SourceStart);
+                break;
+            case token_kind_Identifier:
+                printf("(ident %.*s)", StringLength, SourceStart);
+                break;
+            default: printf("()"); break;
             }
         }
+        printf("\n");
     }
     printf("\n");
     return Result;
