@@ -9,28 +9,42 @@
 #include "gui.c"
 #endif
 
+#define DEBUG_VEC_TEST 0
+#define DEBUG_JS_LEX_TEST 1
+#define DEBUG_PARSE_JSON_TEST 0
+
 int main()
 {
     int Result = 0;
 
+#if DEBUG_VEC_TEST
     if(vec_test() != 0)
     {
         printf("[ error ] vec_test\n");
     }
+#endif
 
+#if DEBUG_JS_LEX_TEST
     if(TestJsLex() != 0)
     {
         printf("[ error ] TestJsLex\n");
     }
+#endif
 
-    buffer *Source = ReadFileIntoBuffer("../idi.idi");
-    printf("\nParseJson:\n");
-    ParseJson(Source);
+#if DEBUG_VEC_TEST
+    {
+        buffer *Source = ReadFileIntoBuffer("../idi.idi");
+        printf("\nParseJson:\n");
+        ParseJson(Source);
+        FreeBuffer(Source);
+    }
+#endif
+
+
 #if BUILD_GUI
     /* DisplayWindow(); */
     DrawTree();
 #endif
-    FreeBuffer(Source);
 
     return Result;
 }
