@@ -15,7 +15,7 @@ if [ $DEBUG -eq 0 ]; then
     TARGET="-O2 -o build/idi.exe"
 elif [ $DEBUG -eq 1 ]; then
     echo "Debug build";
-    TARGET="-g3 -O0"
+    TARGET="-g3 -O0 -o build/a.out"
 elif [ $DEBUG -eq 2 ]; then
     echo "Outputting object file";
     TARGET="-c -O2"
