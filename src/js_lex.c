@@ -124,7 +124,6 @@ static token ParseToken(lexer *Lexer)
     EatSpace(Lexer);
     while(Running && in_bounds(Lexer))
     {
-        printf("char %c\n", get_char(Lexer));
         switch(get_char(Lexer))
         {
         case '{': case '}': case '[': case ']': case '(': case ')':
@@ -178,7 +177,6 @@ static token *LexJs(lexer *Lexer)
         token Token = ParseToken(Lexer);
         if(Token.Kind != token_kind_None)
         {
-            printf("pushing token %d %lu\n", Token.Kind, Lexer->I);
             vec_push(Result, Token);
         }
         else
@@ -200,17 +198,17 @@ u32 TestJsLex()
     printf("Tokens %lu\n", vec_len(Tokens));
     for(I = 0; I < vec_len(Tokens); ++I)
     {
-        if(Tokens[Lexer.I].Kind < 128)
+        if(Tokens[I].Kind < 128)
         {
-            printf("%c ", Tokens[Lexer.I].Kind);
+            printf("%c ", Tokens[I].Kind);
         }
-        else if(Tokens[Lexer.I].Kind == 0)
+        else if(Tokens[I].Kind == 0)
         {
             printf("NONE ");
         }
         else
         {
-            token Token = Tokens[Lexer.I];
+            token Token = Tokens[I];
             u32 StringLength = (u32)Token.Value.String.End - Token.Value.String.Start;
             u8 *SourceStart = &Lexer.Source.Data[Token.Value.String.Start];
             switch(Token.Kind)
