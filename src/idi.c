@@ -23,7 +23,7 @@ int main()
         printf("[ error ] TestJsLex\n");
     }
 
-    buffer *Source = ReadFileIntoBuffer("./idi.idi");
+    buffer *Source = ReadFileIntoBuffer("../idi.idi");
     printf("\nParseJson:\n");
     ParseJson(Source);
 #if BUILD_GUI

@@ -1,6 +1,10 @@
 #define in_bounds(buffer, i) ((*i) < (buffer)->Size)
 #define get_char(buffer, i) ((buffer)->Data[(*i)])
 #define char_is_digit(c) ((c) >= '0' && (c) <= '9')
+#define char_is_alpha_lower(c) ((c) >= 'a' && (c) <= 'z')
+#define char_is_alpha_upper(c) ((c) >= 'A' && (c) <= 'Z')
+#define char_is_alpha(c) (char_is_alpha_lower(c) || char_is_alpha_upper(c))
+#define char_is_alpha_num(c) (char_is_alpha(c) || char_is_digit(c))
 #define next(i) ((*(i))++)
 #define next_index(i) ((*(i))+1)
 
@@ -46,6 +50,7 @@ static token ScanString(buffer *Source, size *I)
     Result.Kind = token_kind_None;
     u8 MatchQuote = get_char(Source, I);
     next(I);
+    Result.Value.String.Start = *I;
     size StartI = *I;
     while(in_bounds(Source, I))
     {
@@ -71,6 +76,7 @@ static token ScanDigit(buffer *Source, size *I)
 {
     token Result;
     Result.Kind = token_kind_Integer;
+    Result.Value.String.Start = *I;
     while(in_bounds(Source, I))
     {
         u8 Char = get_char(Source, I);
@@ -99,6 +105,19 @@ static token ScanDigit(buffer *Source, size *I)
     return Result;
 }
 
+static token ScanIdentifier(buffer *Source, size *I)
+{
+    token Result;
+    Result.Kind = token_kind_Identifier;
+    Result.Value.String.Start = *I;
+    while(in_bounds(Source, I) && char_is_alpha_num(get_char(Source, I)))
+    {
+        next(I);
+    }
+    Result.Value.String.End = (*I);
+    return Result;
+}
+
 static token ParseToken(buffer *Source, size *I)
 {
     token Token = EmptyToken();
@@ -106,10 +125,11 @@ static token ParseToken(buffer *Source, size *I)
     EatSpace(Source, I);
     while(Running && in_bounds(Source, I))
     {
+        printf("char %c\n", get_char(Source, I));
         switch(get_char(Source, I))
         {
         case '{': case '}': case '[': case ']': case '(': case ')':
-        case ';': case ':':  case ',':
+        case ';': case ':':  case ',': case '=':
         singlechar:
             Token.Kind = get_char(Source, I);
             next(I);
@@ -135,6 +155,14 @@ static token ParseToken(buffer *Source, size *I)
             Token = ScanDigit(Source, I);
             Running = 0;
             break;
+        case 'a': case 'b': case 'c': case 'd': case 'e':
+        case 'f': case 'g': case 'h': case 'i': case 'j':
+        case 'k': case 'l': case 'm': case 'n': case 'o':
+        case 'p': case 'q': case 'r': case 's': case 't':
+        case 'u': case 'v': case 'w': case 'x': case 'y': case 'z':
+            Token = ScanIdentifier(Source, I);
+            Running = 0;
+            break;
         default:
             Running = 0;
             break;
@@ -152,6 +180,7 @@ static token *LexJs(buffer *Source)
         token Token = ParseToken(Source, &I);
         if(Token.Kind != token_kind_None)
         {
+            printf("pushing token %d %lu\n", Token.Kind, I);
             vec_push(Result, Token);
         }
         else
@@ -166,10 +195,10 @@ u32 TestJsLex()
 {
     printf("\nTestJsLex:\n");
     u32 Result = 0;
-    buffer *Source = ReadFileIntoBuffer("./test/test.js");
+    buffer *Source = ReadFileIntoBuffer("../test/test.js");
     u32 I;
     token *Tokens = LexJs(Source);
-    printf("Tokens\n");
+    printf("Tokens %lu\n", vec_len(Tokens));
     for(I = 0; I < vec_len(Tokens); ++I)
     {
         if(Tokens[I].Kind < 128)
@@ -182,11 +211,15 @@ u32 TestJsLex()
         }
         else
         {
-            switch(Tokens[I].Kind)
+            token Token = Tokens[I];
+            u32 StringLength = (u32)Token.Value.String.End - Token.Value.String.Start;
+            u8 *SourceStart = &Source->Data[Token.Value.String.Start];
+            switch(Token.Kind)
             {
-            case token_kind_String: printf("String"); break;
-            case token_kind_Integer: printf("Integer"); break;
-            case token_kind_Float: printf("Float"); break;
+            case token_kind_String: printf("<String %.*s>", StringLength, SourceStart); break;
+            case token_kind_Integer: printf("<Integer %.*s>", StringLength, SourceStart); break;
+            case token_kind_Float: printf("<Float %.*s>", StringLength, SourceStart); break;
+            case token_kind_Identifier: printf("<Identifier %.*s>", StringLength, SourceStart); break;
             default: printf("<no token>"); break;
             }
         }
