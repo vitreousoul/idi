@@ -24,6 +24,8 @@ typedef enum token_kind
     token_kind_Integer,
     token_kind_Float,
     token_kind_Identifier,
+    token_kind_DoubleEquals,
+    token_kind_TripleEquals,
 } token_kind;
 
 typedef struct token

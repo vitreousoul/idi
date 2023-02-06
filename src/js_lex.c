@@ -35,7 +35,7 @@ static u8 Peek(lexer *Lexer)
 {
     if(in_bounds(Lexer))
     {
-        return get_char(Lexer);
+        return Lexer->Source.Data[Lexer->I + 1];
     }
     else
     {
@@ -105,6 +105,24 @@ static token ScanDigit(lexer *Lexer)
     return Result;
 }
 
+static token ScanEquals(lexer *Lexer)
+{
+    token Token;
+    ++Lexer->I;
+    u8 NextChar = Peek(Lexer);
+    if(NextChar == '=')
+    {
+        Token.Kind = token_kind_TripleEquals;
+        ++Lexer->I;
+    }
+    else
+    {
+        Token.Kind = token_kind_DoubleEquals;
+    }
+    ++Lexer->I;
+    return Token;
+}
+
 static token ScanIdentifier(lexer *Lexer)
 {
     token Result;
@@ -128,7 +146,7 @@ static token ParseToken(lexer *Lexer)
         switch(get_char(Lexer))
         {
         case '{': case '}': case '[': case ']': case '(': case ')':
-        case ';': case ':':  case ',': case '=': case '*':
+        case ';': case ':':  case ',': case '*':
         singlechar:
                 Token.Kind = get_char(Lexer);
                 ++Lexer->I;
@@ -149,6 +167,19 @@ static token ParseToken(lexer *Lexer)
             }
             Running = 0;
             break;
+        case '=':
+        {
+            u8 NextChar = Peek(Lexer);
+            if(NextChar == '=')
+            {
+                Token = ScanEquals(Lexer);
+            }
+            else
+            {
+                printf("goto singlechar");
+                goto singlechar;
+            }
+        } break;
         case '0': case '1': case '2': case '3': case '4':
         case '5': case '6': case '7': case '8': case '9':
             Token = ScanDigit(Lexer);
@@ -243,6 +274,12 @@ u32 TestJsLex()
                 break;
             case token_kind_Identifier:
                 printf("(ident %.*s)", StringLength, SourceStart);
+                break;
+            case token_kind_DoubleEquals:
+                printf("(double-equals)");
+                break;
+            case token_kind_TripleEquals:
+                printf("(triple-equals)");
                 break;
             default: printf("()"); break;
             }
