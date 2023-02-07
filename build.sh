@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
-DEBUG=1
-GUI=0
+DEBUG=0
+GUI=1
 SOURCE_FILES="src/idi.c"
 GUI_LIBS="`sdl2-config --cflags --libs`"
 SETTINGS="-std=c89 -Wall -Wextra -Wstrict-prototypes -Wold-style-definition -Wmissing-prototypes -Wmissing-declarations -Wno-comment"

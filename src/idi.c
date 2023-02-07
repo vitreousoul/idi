@@ -42,8 +42,7 @@ int main()
 
 
 #if BUILD_GUI
-    /* DisplayWindow(); */
-    DrawTree();
+    DisplayWindow();
 #endif
 
     return Result;
