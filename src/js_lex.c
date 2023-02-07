@@ -176,7 +176,6 @@ static token ParseToken(lexer *Lexer)
             }
             else
             {
-                printf("goto singlechar");
                 goto singlechar;
             }
         } break;
