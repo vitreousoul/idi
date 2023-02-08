@@ -1,10 +1,3 @@
-#include <stddef.h>
-
-#define MIN(x, y) ((x) <= (y) ? (x) : (y))
-#define MAX(x, y) ((x) >= (y) ? (x) : (y))
-#define CLAMP_MAX(x, max) MIN(x, max)
-#define CLAMP_MIN(x, min) MAX(x, min)
-
 typedef struct VecHdr {
     size_t len;
     size_t cap;
@@ -21,7 +14,6 @@ typedef struct VecHdr {
 #define vec_free(b) ((b) ? (free(vec__hdr(b)), (b) = NULL) : 0)
 #define vec_fit(b, n) ((n) <= vec_cap(b) ? 0 : ((b) = vec__grow((b), (n), sizeof(*(b)))))
 #define vec_push(b, ...) (vec_fit((b), 1 + vec_len(b)), (b)[vec__hdr(b)->len++] = (__VA_ARGS__))
-#define vec_printf(b, ...) ((b) = vec__printf((b), __VA_ARGS__))
 #define vec_clear(b) ((b) ? vec__hdr(b)->len = 0 : 0)
 
 static void *vec__grow(const void *vec, size_t new_len, size_t elem_size)
