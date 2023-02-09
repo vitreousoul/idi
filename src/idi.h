@@ -12,6 +12,7 @@
 #include "platform.h"
 #include "json_parser.h"
 #include "js_lex.h"
+#include "js_parse.h"
 
 // NOTE: BUILD_GUI is used to toggle the GUI build path. Currently the BUILD_GUI path is the
 // only path containing library code, which may be of interest when building this project.
