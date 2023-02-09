@@ -5,8 +5,19 @@
 #define char_is_alpha_upper(c) ((c) >= 'A' && (c) <= 'Z')
 #define char_is_alpha(c) (char_is_alpha_lower(c) || char_is_alpha_upper(c))
 #define char_is_alpha_num(c) (char_is_alpha(c) || char_is_digit(c))
-#define next(i) ((*(i))++)
-#define next_index(i) ((*(i))+1)
+#define char_is_identifier(c) (char_is_alpha_num(c) || (c) == '_')
+
+static u8 Peek(lexer *Lexer)
+{
+    if(in_bounds(Lexer))
+    {
+        return Lexer->Source.Data[Lexer->I + 1];
+    }
+    else
+    {
+        return 0;
+    }
+}
 
 static void EatSpace(lexer *Lexer)
 {
@@ -17,6 +28,50 @@ static void EatSpace(lexer *Lexer)
         case ' ': case '\n': case '\r': case '\t':
             Lexer->I++;
             break;
+        case '/':
+        {
+            u8 NextChar = Peek(Lexer);
+            if (NextChar == '/')
+            {
+                Lexer->I += 2;
+                b32 Running = 1;
+                while(Running && in_bounds(Lexer))
+                {
+                    u8 Char = get_char(Lexer);
+                    if(Char == '\n')
+                    {
+                        ++Lexer->I;
+                        Running = 0;
+                    }
+                    else if(Char == '\r' && Peek(Lexer) == '\n')
+                    {
+                        Lexer->I += 2;
+                        Running = 0;
+                    }
+                    else
+                    {
+                        ++Lexer->I;
+                    }
+                }
+            }
+            else if (NextChar == '*')
+            {
+                Lexer->I += 2;
+                b32 Running = 1;
+                while(Running && in_bounds(Lexer))
+                {
+                    if(get_char(Lexer) == '*' && Peek(Lexer) == '/')
+                    {
+                        Lexer->I += 2;
+                        Running = 0;
+                    }
+                    else
+                    {
+                        ++Lexer->I;
+                    }
+                }
+            }
+        } break;
         default:
             goto end;
         }
@@ -31,16 +86,11 @@ static token EmptyToken()
     return Result;
 }
 
-static u8 Peek(lexer *Lexer)
+static token ArrowToken()
 {
-    if(in_bounds(Lexer))
-    {
-        return Lexer->Source.Data[Lexer->I + 1];
-    }
-    else
-    {
-        return 0;
-    }
+    token Result;
+    Result.Kind = token_kind_Arrow;
+    return Result;
 }
 
 static token ScanString(lexer *Lexer)
@@ -128,7 +178,7 @@ static token ScanIdentifier(lexer *Lexer)
     token Result;
     Result.Kind = token_kind_Identifier;
     Result.Value.String.Start = Lexer->I;
-    while(in_bounds(Lexer) && char_is_alpha_num(get_char(Lexer)))
+    while(in_bounds(Lexer) && char_is_identifier(get_char(Lexer)))
     {
         ++Lexer->I;
     }
@@ -146,7 +196,7 @@ static token ParseToken(lexer *Lexer)
         switch(get_char(Lexer))
         {
         case '{': case '}': case '[': case ']': case '(': case ')':
-        case ';': case ':':  case ',': case '*':
+        case ';': case ':':  case ',': case '*': case '?':
         singlechar:
                 Token.Kind = get_char(Lexer);
                 ++Lexer->I;
@@ -174,6 +224,11 @@ static token ParseToken(lexer *Lexer)
             {
                 Token = ScanEquals(Lexer);
             }
+            else if(NextChar == '>')
+            {
+                Token = ArrowToken();
+                Lexer->I += 2;
+            }
             else
             {
                 goto singlechar;
@@ -194,6 +249,7 @@ static token ParseToken(lexer *Lexer)
         case 'K': case 'L': case 'M': case 'N': case 'O':
         case 'P': case 'Q': case 'R': case 'S': case 'T':
         case 'U': case 'V': case 'W': case 'X': case 'Y': case 'Z':
+        case '_':
             Token = ScanIdentifier(Lexer);
             Running = 0;
             break;
@@ -279,6 +335,9 @@ u32 TestJsLex()
                 break;
             case token_kind_TripleEquals:
                 printf("(triple-equals)");
+                break;
+            case token_kind_Arrow:
+                printf("(arrow)");
                 break;
             default: printf("()"); break;
             }

@@ -13,6 +13,7 @@ typedef enum token_kind
     token_kind_ForwardSlash = '/',
     token_kind_SemiColon = ';',
     token_kind_Colon = ':',
+    token_kind_Query = '?',
     token_kind_Comma = ',',
     token_kind_Period = '.',
     token_kind_Plus = '+',
@@ -26,6 +27,7 @@ typedef enum token_kind
     token_kind_Identifier,
     token_kind_DoubleEquals,
     token_kind_TripleEquals,
+    token_kind_Arrow,
 } token_kind;
 
 typedef struct token
