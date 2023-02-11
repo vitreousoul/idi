@@ -18,6 +18,7 @@ typedef struct gui_rgb
     u8 R;
     u8 G;
     u8 B;
+    u8 A;
 } gui_rgb;
 
 typedef struct gui_dialog
@@ -70,5 +71,11 @@ typedef struct gui_font_render_data
     gui_rect BoundingRect;
     stbtt_fontinfo Info;
 } gui_font_render_data;
+
+typedef struct
+{
+    SDL_Rect Rect;
+    SDL_Texture *Texture;
+} bounded_texture;
 
 void DisplayWindow(void);
