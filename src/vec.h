@@ -1,3 +1,5 @@
+// NOTE: Vec is taken from buf in: https://github.com/pervognsen/bitwise/blob/master/ion/common.c
+//
 typedef struct VecHdr {
     size_t len;
     size_t cap;
