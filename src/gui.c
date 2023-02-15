@@ -58,7 +58,7 @@ static gui_state InitGuiState()
     Result.FontData.Size = 36;
     Result.Cursor.BufferIndex = 0;
     Result.Cursor.X = 0;
-    Result.Cursor.Y = 0;
+    Result.Cursor.Y = 24;
     Result.Color.R = 255;
     Result.Color.G = 255;
     Result.Color.B = 255;
@@ -85,6 +85,7 @@ static void InitTextureCache(SDL_Renderer *Renderer)
     scale = stbtt_ScaleForPixelHeight(&font, FONT_HEIGHT_IN_PIXELS);
     stbtt_GetFontVMetrics(&font, &ascent,0,0);
     baseline = (int) (ascent*scale);
+    printf("baseline %d", baseline);
 
     for(c = 0; c < MAX_TEXTURE_CACHE_COUNT; ++c)
     {
@@ -179,10 +180,7 @@ static b32 HandleEvents(gui_state *State)
         case SDL_MOUSEBUTTONUP:
         {
             State->Color.R = 20;
-
-
-
-State->Color.G = 255;
+            State->Color.G = 255;
             State->Color.B = 255;
         } break;
         case SDL_QUIT:
@@ -195,28 +193,47 @@ State->Color.G = 255;
     return EventNeedsRenderUpdate;
 }
 
-static void RenderTextLine(SDL_Renderer *Renderer, char *Text, s32 Begin, s32 End, s32 X, s32 Y)
+static void RenderTextLine(SDL_Renderer *Renderer, gui_state *State, char *Text, s32 Begin, s32 End)
 {
+    s32 OldCursorX = State->Cursor.X;
+    s32 OldCursorY = State->Cursor.Y;
     s32 I;
     SDL_Rect DestRect, TextureRect;
-    s32 CurrentX = X;
+    s32 CurrentX = State->Cursor.X;
     for(I = Begin; I < End; ++I)
     {
-        bounded_texture BoundedTexture = TEXTURE_CACHE[(u8)Text[I]];
-        TextureRect.x = 0;
-        TextureRect.y = 0;
-        TextureRect.w = BoundedTexture.Rect.w;
-        TextureRect.h = BoundedTexture.Rect.h;
-        DestRect.x = BoundedTexture.Rect.x + CurrentX;
-        DestRect.y = Y + BoundedTexture.Rect.y;
-        DestRect.w = BoundedTexture.Rect.w;
-        DestRect.h = BoundedTexture.Rect.h;
-        SDL_RenderCopy(Renderer, BoundedTexture.Texture, &TextureRect, &DestRect);
-
-        CurrentX += DestRect.w;
+        u8 Char = Text[I];
+        if(Char == '\n')
+        {
+            CurrentX = 0;
+            State->Cursor.Y += 24;
+        }
+        else
+        {
+            bounded_texture BoundedTexture = TEXTURE_CACHE[Char];
+            TextureRect.x = 0;
+            TextureRect.y = 0;
+            TextureRect.w = BoundedTexture.Rect.w;
+            TextureRect.h = BoundedTexture.Rect.h;
+            DestRect.x = BoundedTexture.Rect.x + CurrentX;
+            DestRect.y = State->Cursor.Y + BoundedTexture.Rect.y;
+            if(Char == ' ')
+            {
+                DestRect.w = 12;
+            }
+            else
+            {
+                DestRect.w = BoundedTexture.Rect.w;
+            }
+            DestRect.h = BoundedTexture.Rect.h;
+            SDL_RenderCopy(Renderer, BoundedTexture.Texture, &TextureRect, &DestRect);
+            CurrentX += DestRect.w;
+        }
     }
     SDL_SetRenderDrawColor(Renderer, 255, 10, 20, 100);
-    SDL_RenderDrawLine(Renderer, 0, Y, SCREEN_WIDTH, Y);
+    SDL_RenderDrawLine(Renderer, 0, State->Cursor.Y, SCREEN_WIDTH, State->Cursor.Y);
+    State->Cursor.X = OldCursorX;
+    State->Cursor.Y = OldCursorY;
 }
 
 /* static SDL_Color SDLColor(u8 R, u8 G, u8 B, u8 A) */
@@ -254,11 +271,6 @@ void DisplayWindow()
     Rect.w = 24;
     Rect.h = 32;
 
-    gui_font_render_data FontRender;
-    FontRender.PixelHeight = 26;
-    State.Cursor.Y = FontRender.Scale - FontRender.BoundingRect.Y0;
-    State.Cursor.X = 0;
-
     u32 DelayInMilliseconds = 16;
 
     SDL_ShowWindow(Window);
@@ -272,7 +284,7 @@ void DisplayWindow()
             SDL_SetRenderDrawColor(Renderer, 0, 0, 0, 0);
             SDL_RenderClear(Renderer);
             /* SDL_RenderCopy(Renderer, Texture, 0, 0); */
-            RenderTextLine(Renderer, "foo", 0, 3, 50, 50);
+            RenderTextLine(Renderer, &State, "(foo\n (bar 42)\n (baz 24))", 0, 25);
 
             /* Rect.w = TEXTURE_CACHE['y'].Width; */
             /* Rect.h = TEXTURE_CACHE['y'].Height; */
