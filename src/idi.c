@@ -1,5 +1,6 @@
 #include "idi.h"
 
+#include "ds.c"
 #include "buffer.c"
 #include "platform.c"
 #include "json_parser.c"
@@ -44,6 +45,8 @@ int main()
 #if BUILD_GUI
     DisplayWindow();
 #endif
+
+    TestHashTable();
 
     return Result;
 }

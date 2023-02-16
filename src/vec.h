@@ -6,6 +6,8 @@ typedef struct VecHdr {
     char vec[];
 } VecHdr;
 
+#define vec_ptr(x) x
+
 #define vec__hdr(b) ((VecHdr *)((char *)(b) - offsetof(VecHdr, vec)))
 
 #define vec_len(b) ((b) ? vec__hdr(b)->len : 0)

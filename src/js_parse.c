@@ -4,7 +4,6 @@
 //
 // TopLevel = Statement*
 //
-// TODO: some things like function declarations should not end in /;/
 // Statement = StatementContent /;/
 // StatementContent = Assignment | Module
 // Declaration = Class | Function | NameSpace
@@ -15,3 +14,24 @@
 // ImportType = ImportType /from/
 // ImportPath = String
 //
+
+static b32 MatchString()
+{
+
+}
+
+static void ParseJs(buffer Source, token *Tokens, u32 TokenCount)
+{
+    s32 I;
+    for(I = 0; I < TokenCount; ++I)
+    {
+        switch(Tokens[I].Kind)
+        {
+            case token_kind_Identifier:
+                break;
+            default:
+                printf("(error)");
+                break;
+        }
+    }
+}

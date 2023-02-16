@@ -8,6 +8,7 @@
 // code
 #include "types.h"
 #include "common.h"
+#include "ds.h"
 #include "vec.h"
 #include "buffer.h"
 #include "platform.h"
