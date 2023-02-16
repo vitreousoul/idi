@@ -15,11 +15,6 @@
 // ImportPath = String
 //
 
-static b32 MatchString()
-{
-
-}
-
 static void ParseJs(buffer Source, token *Tokens, u32 TokenCount)
 {
     s32 I;
