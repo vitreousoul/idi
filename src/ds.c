@@ -1,5 +1,19 @@
 #define IS_POW2(x) (((x) != 0) && ((x) & ((x)-1)) == 0)
 
+static b32 StringMatch(char *A, char *B)
+{
+    b32 Result = True;
+    while(*A != 0 && *B != 0)
+    {
+        if(*A++ != *B++)
+        {
+            Result = False;
+            break;
+        }
+    }
+    return Result;
+}
+
 static u64 StringHash(char *String)
 {
     u64 Result = 5381;
@@ -8,27 +22,34 @@ static u64 StringHash(char *String)
     {
         Result = ((Result << 5) + Result) + Char;
     }
+    printf("StringHash %llu\n", Result);
+    return Result;
+}
+
+static u64 HashTableGetIndex(hash_table *HashTable, char *Key)
+{
+    u64 Result = StringHash(Key);
+    for(;;)
+    {
+        Result &= HashTable->Capacity - 1;
+        if(!HashTable->Items[Result].Key)
+        {
+            break;
+        }
+        else if(StringMatch(HashTable->Items[Result].Key, Key))
+        {
+            break;
+        }
+        ++Result;
+    }
+    printf("HashTableGetIndex %llu\n", Result);
     return Result;
 }
 
 static u64 HashTableGet(hash_table *HashTable, char *Key)
 {
-    u32 Result = 0;
-    u64 HashValue = StringHash(Key);
-    for(;;)
-    {
-        HashValue &= HashTable->Capacity - 1;
-        if(!HashTable->Items[HashValue].Key)
-        {
-            break;
-        }
-        else if(strcmp(HashTable->Items[HashValue].Key, Key))
-        {
-            Result = HashTable->Items[HashValue].Value;
-            break;
-        }
-        ++HashValue;
-    }
+    u32 HashTableIndex = HashTableGetIndex(HashTable, Key);
+    u32 Result = HashTable->Items[HashTableIndex].Value;
     return Result;
 }
 
@@ -41,31 +62,18 @@ static result HashTableSet(hash_table *HashTable, char *Key, u64 Value)
         return result_Error;
     }
     assert(IS_POW2(HashTable->Capacity));
-    u64 HashValue = StringHash(Key);
-    for(;;)
+    u32 HashTableIndex = HashTableGetIndex(HashTable, Key);
+    if(!HashTableIndex)
     {
-        HashValue &= HashTable->Capacity - 1;
-        if(!HashTable->Items[HashValue].Key)
-        {
-            HashTable->Items[HashValue].Key = Key;
-            HashTable->Items[HashValue].Value = Value;
-            ++HashTable->Count;
-            break;
-        }
-        else if(strcmp(HashTable->Items[HashValue].Key, Key))
-        {
-            HashTable->Items[HashValue].Value = Value;
-            break;
-        }
-        ++HashValue;
+        HashTable->Items[HashTableIndex].Value = Value;
     }
     return Result;
 }
 
 result TestHashTable()
 {
-    s32 I, KeywordCount = 2;
-    char *Strings[] = {"foo","bar"};
+    s32 I, KeywordCount = 4;
+    char *Strings[] = {"foo","bar", "fon","fop"};
     result Result = result_Ok;
     u32 ItemCount = 1 << 12;
     hash_table_item Items[ItemCount];
@@ -77,7 +85,7 @@ result TestHashTable()
     for(I = 0; I < KeywordCount; ++I)
     {
         printf("setting '%s'\n", Strings[I]);
-        HashTableSet(&HashTable, Strings[I], I*4+2);
+        HashTableSet(&HashTable, Strings[I], I*4+3);
     }
     for(I = 0; I < KeywordCount; ++I)
     {
