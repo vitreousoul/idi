@@ -20,7 +20,7 @@ static u64 StringHash(char *String)
     u8 Char;
     while((Char = *String++))
     {
-        Result = ((Result << 5) + Result) + Char;
+        Result ^= Char * Result;
     }
     printf("StringHash %llu\n", Result);
     return Result;
@@ -42,7 +42,7 @@ static u64 HashTableGetIndex(hash_table *HashTable, char *Key)
         }
         ++Result;
     }
-    printf("HashTableGetIndex %llu\n", Result);
+    printf("HashTableGetIndex %s %llu\n", Key, Result);
     return Result;
 }
 
@@ -72,8 +72,8 @@ static result HashTableSet(hash_table *HashTable, char *Key, u64 Value)
 
 result TestHashTable()
 {
-    s32 I, KeywordCount = 4;
-    char *Strings[] = {"foo","bar", "fon","fop"};
+    s32 I, KeywordCount = 5;
+    char *Strings[] = {"apple", "farm", "foo","bar", "fon","fop","foreach"};
     result Result = result_Ok;
     u32 ItemCount = 1 << 12;
     hash_table_item Items[ItemCount];
@@ -92,6 +92,5 @@ result TestHashTable()
         u64 Value = HashTableGet(&HashTable, Strings[I]);
         printf("getting '%s' %llu\n", Strings[I], Value);
     }
-
     return Result;
 }
