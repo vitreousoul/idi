@@ -22,7 +22,6 @@ static u64 StringHash(char *String)
     {
         Result ^= Char * Result;
     }
-    printf("StringHash %llu\n", Result);
     return Result;
 }
 
@@ -42,7 +41,6 @@ static u64 HashTableGetIndex(hash_table *HashTable, char *Key)
         }
         ++Result;
     }
-    printf("HashTableGetIndex %s %llu\n", Key, Result);
     return Result;
 }
 
@@ -53,21 +51,16 @@ static u64 HashTableGet(hash_table *HashTable, char *Key)
     return Result;
 }
 
-static result HashTableSet(hash_table *HashTable, char *Key, u64 Value)
+static void HashTableSet(hash_table *HashTable, char *Key, u64 Value)
 {
-    result Result = result_Ok;
     if(HashTable->Count >= HashTable->Capacity)
     {
         printf("Error: HashTable full");
-        return result_Error;
+        return;
     }
     assert(IS_POW2(HashTable->Capacity));
     u32 HashTableIndex = HashTableGetIndex(HashTable, Key);
-    if(!HashTableIndex)
-    {
-        HashTable->Items[HashTableIndex].Value = Value;
-    }
-    return Result;
+    HashTable->Items[HashTableIndex].Value = Value;
 }
 
 result TestHashTable()
@@ -84,13 +77,13 @@ result TestHashTable()
     HashTable.Count = 0;
     for(I = 0; I < KeywordCount; ++I)
     {
-        printf("setting '%s'\n", Strings[I]);
+        printf("Set hash-table '%s' %d\n", Strings[I], I*4+3);
         HashTableSet(&HashTable, Strings[I], I*4+3);
     }
     for(I = 0; I < KeywordCount; ++I)
     {
         u64 Value = HashTableGet(&HashTable, Strings[I]);
-        printf("getting '%s' %llu\n", Strings[I], Value);
+        printf("Get hash-table '%s' %llu\n", Strings[I], Value);
     }
     return Result;
 }
