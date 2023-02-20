@@ -63,18 +63,24 @@ static void HashTableSet(hash_table *HashTable, char *Key, u64 Value)
     HashTable->Items[HashTableIndex].Value = Value;
 }
 
+static hash_table CreateHashTable(u32 Count)
+{
+    hash_table HashTable;
+    hash_table_item Items[Count];
+    HashTable.Items = Items;
+    HashTable.Capacity = Count;
+    HashTable.Count = 0;
+    memset(Items, 0, sizeof(hash_table_item)*Count);
+    return HashTable;
+}
+
 result TestHashTable()
 {
     s32 I, KeywordCount = 5;
     char *Strings[] = {"apple", "farm", "foo","bar", "fon","fop","foreach"};
     result Result = result_Ok;
     u32 ItemCount = 1 << 12;
-    hash_table_item Items[ItemCount];
-    memset(Items, 0, sizeof(hash_table_item)*ItemCount);
-    hash_table HashTable;
-    HashTable.Items = Items;
-    HashTable.Capacity = ItemCount;
-    HashTable.Count = 0;
+    hash_table HashTable = CreateHashTable(ItemCount);
     for(I = 0; I < KeywordCount; ++I)
     {
         printf("Set hash-table '%s' %d\n", Strings[I], I*4+3);

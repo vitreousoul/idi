@@ -22,6 +22,7 @@ typedef enum token_kind
     token_kind_Equals = '=',
 
     token_kind_String = 128,
+    token_kind_Keyword,
     token_kind_Integer,
     token_kind_Float,
     token_kind_Identifier,
