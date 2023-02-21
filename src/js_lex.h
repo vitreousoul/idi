@@ -31,6 +31,12 @@ typedef enum token_kind
     token_kind_Arrow,
 } token_kind;
 
+typedef enum
+{
+    identifer_kind_Unresolved,
+    identifer_kind_Keyword,
+} identifer_kind;
+
 typedef struct token
 {
     token_kind Kind;
@@ -41,7 +47,8 @@ typedef struct token
             size Start;
             size End;
         } String;
-    } Value;
+        identifer_kind IdentifierKind;
+    };
 } token;
 
 typedef struct lexer

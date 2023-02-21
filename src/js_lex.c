@@ -19,6 +19,27 @@ static u8 Peek(lexer *Lexer)
     }
 }
 
+static hash_table InitIdentifierTable()
+{
+    hash_table IdentifierTable = CreateHashTable(1 << 10);
+    char *Keywords[] = {"import","export","from","const","function","return"};
+    u32 I;
+    for(I = 0; I < ArrayCount(Keywords); ++I)
+    {
+        HashTableSet(&IdentifierTable, Keywords[I], identifer_kind_Keyword);
+    }
+    return IdentifierTable;
+}
+
+static char *StringFromToken(lexer *Lexer, token Token)
+{
+    u32 StringLength = Token.String.End - Token.String.Start;
+    char *Result = malloc(StringLength);
+    memcpy(Result, Lexer->Source.Data + Token.String.Start, StringLength + 1);
+    Result[StringLength] = 0;
+    return Result;
+}
+
 static void EatSpace(lexer *Lexer)
 {
     while(in_bounds(Lexer))
@@ -99,7 +120,7 @@ static token ScanString(lexer *Lexer)
     Result.Kind = token_kind_None;
     u8 MatchQuote = get_char(Lexer);
     ++Lexer->I;
-    Result.Value.String.Start = Lexer->I;
+    Result.String.Start = Lexer->I;
     size StartI = Lexer->I;
     while(in_bounds(Lexer))
     {
@@ -107,8 +128,8 @@ static token ScanString(lexer *Lexer)
         if(Char == MatchQuote)
         {
             Result.Kind = token_kind_String;
-            Result.Value.String.Start = StartI;
-            Result.Value.String.End = Lexer->I;
+            Result.String.Start = StartI;
+            Result.String.End = Lexer->I;
             ++Lexer->I;
             break;
         }
@@ -125,7 +146,7 @@ static token ScanDigit(lexer *Lexer)
 {
     token Result;
     Result.Kind = token_kind_Integer;
-    Result.Value.String.Start = Lexer->I;
+    Result.String.Start = Lexer->I;
     while(in_bounds(Lexer))
     {
         u8 Char = get_char(Lexer);
@@ -151,7 +172,7 @@ static token ScanDigit(lexer *Lexer)
             break;
         }
     }
-    Result.Value.String.End = Lexer->I;
+    Result.String.End = Lexer->I;
     return Result;
 }
 
@@ -177,12 +198,12 @@ static token ScanIdentifier(lexer *Lexer)
 {
     token Result;
     Result.Kind = token_kind_Identifier;
-    Result.Value.String.Start = Lexer->I;
+    Result.String.Start = Lexer->I;
     while(in_bounds(Lexer) && char_is_identifier(get_char(Lexer)))
     {
         ++Lexer->I;
     }
-    Result.Value.String.End = (Lexer->I);
+    Result.String.End = (Lexer->I);
     return Result;
 }
 
@@ -264,11 +285,20 @@ static token ParseToken(lexer *Lexer)
 static token *LexJs(lexer *Lexer)
 {
     token *Result = 0;
+    hash_table IdentifierTable = InitIdentifierTable();
     while(in_bounds(Lexer))
     {
         token Token = ParseToken(Lexer);
         if(Token.Kind != token_kind_None)
         {
+            if(Token.Kind == token_kind_Identifier)
+            {
+                char *TokenString = StringFromToken(Lexer, Token);
+                identifer_kind IdentifierKind = HashTableGet(&IdentifierTable, TokenString);
+                printf("ident %d %s\n", IdentifierKind, TokenString);
+                /* HashTableSet(&IdentifierTable,  */
+                free(TokenString);
+            }
             vec_push(Result, Token);
         }
         else
@@ -314,8 +344,8 @@ u32 TestJsLex()
         else
         {
             token Token = Tokens[I];
-            u32 StringLength = (u32)Token.Value.String.End - Token.Value.String.Start;
-            u8 *SourceStart = &Lexer.Source.Data[Token.Value.String.Start];
+            u32 StringLength = (u32)Token.String.End - Token.String.Start;
+            u8 *SourceStart = &Lexer.Source.Data[Token.String.Start];
             switch(Token.Kind)
             {
             case token_kind_String:
