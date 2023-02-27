@@ -114,6 +114,8 @@ static token EmptyToken()
 {
     token Result;
     Result.Kind = token_kind_None;
+    Result.String.Start = 0;
+    Result.String.End = 0;
     return Result;
 }
 

@@ -13,8 +13,8 @@
 // Pick = /\{/ PickParams
 // PickParams = /\}/ | PickItems
 // PickItems = PickItem PickRest
-// PickRest = /}/ | /,/ PickNext* PickEnd
-// PickNext
+// PickRest = /}/ |  PickNext* PickEnd
+// PickNext = /,/ PickItem?
 // PickEnd = /,}/ | /}/
 // PickNext = /,/ PickItem
 // PickItem = PickName PickAlias?
@@ -22,7 +22,7 @@
 // PickAlias = /as/ Identifier
 //
 
-#define CURRENT_TOKEN(Parser) ((Parser)->Tokens[(Parser)->I])
+#define CURRENT_TOKEN(Parser) (HAS_TOKENS(Parser) ? (Parser)->Tokens[(Parser)->I] : EmptyToken())
 #define HAS_TOKENS(Parser) ((Parser)->I < (Parser)->TokenCount)
 
 static void ParseError()
@@ -59,30 +59,6 @@ static void ExpectToken(js_parser *Parser, token_kind TokenKind)
     else
     {
         printf("Expected token %d but got %d %lu %lu\n", TokenKind, CurrentTokenKind, CURRENT_TOKEN(Parser).String.Start, CURRENT_TOKEN(Parser).String.End);
-        ParseError();
-    }
-}
-
-static void ParseImportStarOrPick(js_parser *Parser)
-{
-    printf("ParseImportStar not implemented\n");
-    ParseError();
-}
-
-static void ParseImportDefault(js_parser *Parser)
-{
-    ExpectToken(Parser, token_kind_Identifier);
-    switch(CURRENT_TOKEN(Parser).Kind)
-    {
-    case token_kind_From:
-        NextToken(Parser);
-        break;
-    case token_kind_Comma:
-        NextToken(Parser);
-        ParseImportStarOrPick(Parser);
-        break;
-    default:
-        printf("ParseImportDefault default error\n");
         ParseError();
     }
 }
@@ -134,7 +110,8 @@ static void ParsePickItems(js_parser *Parser)
         {
             NextToken(Parser);
         }
-        else if(CURRENT_TOKEN(Parser).Kind == token_kind_CurlyClose)
+
+        if(CURRENT_TOKEN(Parser).Kind == token_kind_CurlyClose)
         {
             NextToken(Parser);
             break;
@@ -154,6 +131,40 @@ static void ParseImportPick(js_parser *Parser)
         ParsePickItems(Parser);
     }
     ExpectToken(Parser, token_kind_From);
+}
+
+static void ParseImportStarOrPick(js_parser *Parser)
+{
+    switch(CURRENT_TOKEN(Parser).Kind)
+    {
+    case token_kind_Star:
+        ParseImportStar(Parser);
+        break;
+    case token_kind_CurlyOpen:
+        ParseImportPick(Parser);
+        break;
+    default:
+        printf("ParseImportStarOrPick\n");
+        ParseError();
+    }
+}
+
+static void ParseImportDefault(js_parser *Parser)
+{
+    ExpectToken(Parser, token_kind_Identifier);
+    switch(CURRENT_TOKEN(Parser).Kind)
+    {
+    case token_kind_From:
+        NextToken(Parser);
+        break;
+    case token_kind_Comma:
+        NextToken(Parser);
+        ParseImportStarOrPick(Parser);
+        break;
+    default:
+        printf("ParseImportDefault default error\n");
+        ParseError();
+    }
 }
 
 static void ParseImportBody(js_parser *Parser)
@@ -177,9 +188,11 @@ static void ParseImportBody(js_parser *Parser)
 
 static void ParseImport(js_parser *Parser)
 {
-    printf("ParseImport\n");
     ExpectToken(Parser, token_kind_Import);
-    ParseImportBody(Parser);
+    if(CURRENT_TOKEN(Parser).Kind != token_kind_String)
+    {
+        ParseImportBody(Parser);
+    }
     ExpectToken(Parser, token_kind_String);
     ExpectToken(Parser, token_kind_SemiColon);
 }
