@@ -19,16 +19,26 @@ static u8 Peek(lexer *Lexer)
     }
 }
 
-static hash_table InitIdentifierTable()
+static hash_table InitKeywordTable()
 {
-    hash_table IdentifierTable = CreateHashTable(1 << 10);
-    char *Keywords[] = {"import","export","from","const","function","return"};
+    hash_table KeywordTable = CreateHashTable(1 << 10);
+    typedef struct { token_kind TokenKind; char* String; } KeywordKind;
+    KeywordKind KeywordKinds[] = {
+        {token_kind_Import, "import"},
+        {token_kind_Export, "export"},
+        {token_kind_From, "from"},
+        {token_kind_Const, "const"},
+        {token_kind_Function, "function"},
+        {token_kind_Return, "return"},
+        {token_kind_As, "as"},
+        {token_kind_Default, "default"},
+    };
     u32 I;
-    for(I = 0; I < ArrayCount(Keywords); ++I)
+    for(I = 0; I < ArrayCount(KeywordKinds); ++I)
     {
-        HashTableSet(&IdentifierTable, Keywords[I], identifer_kind_Keyword);
+        HashTableSet(&KeywordTable, KeywordKinds[I].String, KeywordKinds[I].TokenKind);
     }
-    return IdentifierTable;
+    return KeywordTable;
 }
 
 static char *StringFromToken(lexer *Lexer, token Token)
@@ -194,9 +204,10 @@ static token ScanEquals(lexer *Lexer)
     return Token;
 }
 
-static token ScanIdentifier(lexer *Lexer)
+static token ScanIdentifier(lexer *Lexer, hash_table KeywordTable)
 {
     token Result;
+    token_kind KeywordKind;
     Result.Kind = token_kind_Identifier;
     Result.String.Start = Lexer->I;
     while(in_bounds(Lexer) && char_is_identifier(get_char(Lexer)))
@@ -204,10 +215,15 @@ static token ScanIdentifier(lexer *Lexer)
         ++Lexer->I;
     }
     Result.String.End = (Lexer->I);
+    char *String = StringFromToken(Lexer, Result);
+    if((KeywordKind = HashTableGet(&KeywordTable, String)))
+    {
+        Result.Kind = KeywordKind;
+    }
     return Result;
 }
 
-static token ParseToken(lexer *Lexer)
+static token ParseToken(lexer *Lexer, hash_table KeywordTable)
 {
     token Token = EmptyToken();
     b32 Running = 1;
@@ -271,7 +287,7 @@ static token ParseToken(lexer *Lexer)
         case 'P': case 'Q': case 'R': case 'S': case 'T':
         case 'U': case 'V': case 'W': case 'X': case 'Y': case 'Z':
         case '_':
-            Token = ScanIdentifier(Lexer);
+            Token = ScanIdentifier(Lexer, KeywordTable);
             Running = 0;
             break;
         default:
@@ -285,18 +301,18 @@ static token ParseToken(lexer *Lexer)
 static token *LexJs(lexer *Lexer)
 {
     token *Result = 0;
-    hash_table IdentifierTable = InitIdentifierTable();
+    hash_table KeywordTable = InitKeywordTable();
+    u32 ReservedKeywordCount = 0;
     while(in_bounds(Lexer))
     {
-        token Token = ParseToken(Lexer);
+        token Token = ParseToken(Lexer, KeywordTable);
         if(Token.Kind != token_kind_None)
         {
             if(Token.Kind == token_kind_Identifier)
             {
                 char *TokenString = StringFromToken(Lexer, Token);
-                identifer_kind IdentifierKind = HashTableGet(&IdentifierTable, TokenString);
-                printf("ident %d %s\n", IdentifierKind, TokenString);
-                /* HashTableSet(&IdentifierTable,  */
+                identifier_kind KeywordKind = HashTableGet(&KeywordTable, TokenString);
+                if (KeywordKind == identifier_kind_Keyword) ++ReservedKeywordCount;
                 free(TokenString);
             }
             vec_push(Result, Token);
@@ -369,7 +385,7 @@ u32 TestJsLex()
             case token_kind_Arrow:
                 printf("(arrow)");
                 break;
-            default: printf("()"); break;
+            default: printf("(%d)", Token.Kind); break;
             }
         }
         printf("\n");

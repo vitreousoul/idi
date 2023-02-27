@@ -60,6 +60,7 @@ static void HashTableSet(hash_table *HashTable, char *Key, u64 Value)
     }
     assert(IS_POW2(HashTable->Capacity));
     u32 HashTableIndex = HashTableGetIndex(HashTable, Key);
+    HashTable->Items[HashTableIndex].Key = Key;
     HashTable->Items[HashTableIndex].Value = Value;
 }
 

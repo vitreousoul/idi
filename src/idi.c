@@ -5,6 +5,7 @@
 #include "platform.c"
 #include "json_parser.c"
 #include "js_lex.c"
+#include "js_parse.c"
 
 #if BUILD_GUI
 #include "gui.c"
@@ -47,6 +48,8 @@ int main()
 #endif
 
     TestHashTable();
+
+    TestParseJs();
 
     return Result;
 }
