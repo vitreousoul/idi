@@ -140,7 +140,7 @@ static token ScanString(lexer *Lexer)
         if(Char == MatchQuote)
         {
             Result.Kind = token_kind_String;
-            Result.String.Start = StartI;
+            Result.String.Start = StartI; // TODO: delete this, right?
             Result.String.End = Lexer->I;
             ++Lexer->I;
             break;
@@ -300,7 +300,7 @@ static token ParseToken(lexer *Lexer, hash_table KeywordTable)
     return Token;
 }
 
-static token *LexJs(lexer *Lexer)
+token *LexJs(lexer *Lexer)
 {
     token *Result = 0;
     hash_table KeywordTable = InitKeywordTable();

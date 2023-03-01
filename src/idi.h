@@ -3,7 +3,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <stddef.h>
-#include <string.h> // NOTE: for memcpy i guess?
+#include <string.h>
 
 // code
 #include "types.h"
