@@ -3,11 +3,11 @@
 DEBUG=1
 GUI=0
 SOURCE_FILES="src/idi.c"
-GUI_LIBS="`sdl2-config --cflags --libs`"
 SETTINGS="-std=c89 -Wall -Wextra -Wstrict-prototypes -Wold-style-definition -Wmissing-prototypes -Wmissing-declarations -Wno-comment"
+GUI_LIBS=""
 
-if [ $GUI -eq 0 ]; then
-    GUI_LIBS=""
+if [ $GUI -eq 1 ]; then
+    GUI_LIBS="`sdl2-config --cflags --libs`"
 fi
 
 if [ $DEBUG -eq 0 ]; then
