@@ -219,7 +219,19 @@ void TestParseJs()
     lexer Lexer = {*Source,0};
     token *Tokens = LexJs(&Lexer);
     js_parser Parser = {vec_len(Tokens),0,Tokens};
-    file_info *FileInfo = FileTreeWalk("../src");
+    file_info *FileInfo = FileTreeWalk("../test");
+    s32 I;
+    for(I = 0;; ++I)
+    {
+        if(FileInfo[I].fpath == 0)
+        {
+            break;
+        }
+        else
+        {
+            printf("%s %lld\n", FileInfo[I].fpath, FileInfo[I].size);
+        }
+    }
     ParseJs(&Parser);
     printf("Parser[%d/%d]\n", Parser.I, Parser.TokenCount);
     assert(Parser.I == Parser.TokenCount);

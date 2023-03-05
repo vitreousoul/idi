@@ -3,7 +3,7 @@
 typedef struct
 {
     char *fpath;
-    struct stat *sb;
+    u64 size;
     int typeflag;
 } file_info;
 

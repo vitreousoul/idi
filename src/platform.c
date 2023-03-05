@@ -42,14 +42,45 @@ void PrintError(char *Message)
     PrintLog("Error", Message);
 }
 
-s32 FtwFunc(const char *fpath, const struct stat *sb, int typeflag)
+static char *StringCopy(char *String)
 {
-    printf("ftw %s\n", fpath);
+    s32 StringLength = 0;
+    while(String[++StringLength] != 0);
+    s32 StringSize = sizeof(char) * StringLength;
+    char *Result = malloc(StringSize);
+    memcpy(Result, String, StringSize);
+    return Result;
+}
+
+static s32 FtwFunc(const char *fpath, const struct stat *sb, int typeflag)
+{
+    static s32 i = 0;
+    if(i < MAX_FILE_INFO_CACHE)
+    {
+        FILE_INFO_CACHE[i].fpath = StringCopy((char *)fpath);
+        FILE_INFO_CACHE[i].size = sb->st_size;
+        FILE_INFO_CACHE[i].typeflag = typeflag;
+    }
+    else
+    {
+        printf("MAX_FILE_INFO_CACHE reached\n");
+    }
+    ++i;
     return 0;
 }
 
 file_info *FileTreeWalk(char *Path)
 {
     s32 FtwResult = ftw(Path, FtwFunc, 1);
-    return FILE_INFO_CACHE;
+    s32 I = 0;
+    while(FILE_INFO_CACHE[++I].fpath != 0);
+    size FileInfoSize = I * sizeof(file_info);
+    file_info *Result = malloc(FileInfoSize);
+    memcpy(Result, FILE_INFO_CACHE, FileInfoSize);
+    memset(FILE_INFO_CACHE, 0, FileInfoSize);
+    if(FtwResult)
+    {
+        printf("ftw error\n");
+    }
+    return Result;
 }
