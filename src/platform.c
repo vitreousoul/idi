@@ -1,3 +1,6 @@
+#define MAX_FILE_INFO_CACHE 1024
+file_info FILE_INFO_CACHE[MAX_FILE_INFO_CACHE];
+
 size GetFileSize(FILE *File)
 {
     size Result;
@@ -37,4 +40,16 @@ void PrintLog(char *Type, char *Message)
 void PrintError(char *Message)
 {
     PrintLog("Error", Message);
+}
+
+s32 FtwFunc(const char *fpath, const struct stat *sb, int typeflag)
+{
+    printf("ftw %s\n", fpath);
+    return 0;
+}
+
+file_info *FileTreeWalk(char *Path)
+{
+    s32 FtwResult = ftw(Path, FtwFunc, 1);
+    return FILE_INFO_CACHE;
 }

@@ -219,6 +219,7 @@ void TestParseJs()
     lexer Lexer = {*Source,0};
     token *Tokens = LexJs(&Lexer);
     js_parser Parser = {vec_len(Tokens),0,Tokens};
+    file_info *FileInfo = FileTreeWalk("../src");
     ParseJs(&Parser);
     printf("Parser[%d/%d]\n", Parser.I, Parser.TokenCount);
     assert(Parser.I == Parser.TokenCount);
