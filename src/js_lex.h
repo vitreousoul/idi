@@ -67,3 +67,4 @@ typedef struct lexer
 } lexer;
 
 u32 TestJsLex(void);
+token *LexJs(lexer *Lexer);
