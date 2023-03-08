@@ -39,3 +39,4 @@
 #define CharIsAlphaLower(Char) ((Char) >= 'a' && (Char) <= 'z')
 #define CharIsAlphaUpper(Char) ((Char) >= 'A' && (Char) <= 'Z')
 #define CharIsAlpha(Char) (CharIsAlphaLower(Char) || CharIsAlphaUpper(Char))
+#define CharIsAlphaNum(Char) (CharIsAlpha(Char) || CharIsDigit(Char))

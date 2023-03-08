@@ -42,10 +42,16 @@ void PrintError(char *Message)
     PrintLog("Error", Message);
 }
 
+static s32 GetStringLength(char *String)
+{
+    s32 Result = -1;
+    while(String[++Result]);
+    return Result;
+}
+
 static char *StringCopy(char *String)
 {
-    s32 StringLength = 0;
-    while(String[++StringLength] != 0);
+    s32 StringLength = GetStringLength(String);
     s32 StringSize = sizeof(char) * StringLength;
     char *Result = malloc(StringSize);
     memcpy(Result, String, StringSize);
@@ -82,5 +88,69 @@ file_info *FileTreeWalk(char *Path)
     {
         printf("ftw error\n");
     }
+    return Result;
+}
+
+char *ResolvePath(char *BasePath, char *Path)
+{
+    s32 PathI, I = -1, State = 0;
+    s32 BasePathLength = GetStringLength(BasePath);
+    s32 PathLength = GetStringLength(Path);
+    b32 Running = 1;
+    u32 Offset = 0;
+    while(Running)
+    {
+        if(!Path[++I] || State < 0)
+        {
+            break;
+        }
+        switch(State)
+        {
+        case 0:
+            State = Path[I] == '.' ? 1 : -1;
+            break;
+        case 1:
+            if(Path[I] == '.')
+            {
+                State = 2;
+            }
+            else if(Path[I] == '/')
+            {
+                State = -1;
+            }
+            else
+            {
+                State = 0;
+            }
+            break;
+        case 2:
+            ++Offset;
+            State = Path[I] == '/' ? 3 : -1;
+            break;
+        case 3:
+            State = Path[I] == '.' ? 4 : -1;
+            break;
+        case 4:
+            State = Path[I] == '.' ? 2 : -1;
+        default:
+            State = -1;
+            break;
+        }
+    }
+    PathI = I;
+    for(I = BasePathLength - 1; I >= 0; --I)
+    {
+        if(Offset <= 0)
+        {
+            break;
+        }
+        else if(BasePath[I] == '/')
+        {
+            --Offset;
+        }
+    }
+    char *Result = malloc(I + (PathLength - PathI));
+    memcpy(Result, BasePath, I);
+    memcpy(Result + I, Path + PathI, PathLength - PathI);
     return Result;
 }

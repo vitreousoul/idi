@@ -46,6 +46,12 @@ typedef enum
     identifier_kind_Keyword,
 } identifier_kind;
 
+typedef struct
+{
+    size Start;
+    size End;
+} range;
+
 typedef struct token
 {
     token_kind Kind;

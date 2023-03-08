@@ -13,3 +13,4 @@ void WriteBufferToFile(buffer *Buffer, char *FilePath);
 void PrintLog(char *Type, char *Message);
 void PrintError(char *Message);
 file_info *FileTreeWalk(char *Path);
+char *ResolvePath(char *BasePath, char *Path);
