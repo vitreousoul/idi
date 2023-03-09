@@ -247,7 +247,7 @@ void TestParseJs()
 {
     file_info *FileInfo = FileTreeWalk("../test");
     s32 I;
-    u32 J, K;
+    u32 K;
     for(I = 0; FileInfo[I].fpath != 0; ++I)
     {
         if(IsJsFile(FileInfo[I].fpath))
@@ -258,13 +258,13 @@ void TestParseJs()
             token *Tokens = LexJs(&Lexer);
             js_parser Parser = {vec_len(Tokens),0,Tokens};
             range *Range = ParseJs(&Parser);
-            for(J = 0; J < vec_len(Range); ++J)
+            for(K = 0; K < vec_len(Range); ++K)
             {
-                for(K = Range[J].Start; K < Range[J].End; ++K)
-                {
-                    printf("%c", Source->Data[K]);
-                }
-                printf("\n");
+                char Path[1 + Range->End - Range->Start];
+                Path[Range->End - Range->Start] = 0;
+                memcpy(Path, Source->Data + Range->Start, Range->End - Range->Start);
+                char *ResolvedPath = ResolvePath(FileInfo[I].fpath, Path);
+                printf("ResolvedPath %s\n", ResolvedPath);
             }
         }
     }

@@ -93,63 +93,94 @@ file_info *FileTreeWalk(char *Path)
 
 char *ResolvePath(char *BasePath, char *Path)
 {
-    s32 PathI, I = -1, State = 0;
+    s32 PathI, I = 0, State = 0;
     s32 BasePathLength = GetStringLength(BasePath);
     s32 PathLength = GetStringLength(Path);
-    b32 Running = 1;
-    u32 Offset = 0;
-    while(Running)
+    u32 Offset = 1;
+    while(State >= 0 && Path[I])
     {
-        if(!Path[++I] || State < 0)
-        {
-            break;
-        }
         switch(State)
         {
         case 0:
-            State = Path[I] == '.' ? 1 : -1;
+            State = Path[I++] == '.' ? 1 : -2;
             break;
         case 1:
             if(Path[I] == '.')
             {
                 State = 2;
+                ++I;
             }
             else if(Path[I] == '/')
             {
                 State = -1;
+                ++I;
             }
             else
             {
                 State = 0;
+                ++I;
             }
             break;
         case 2:
             ++Offset;
-            State = Path[I] == '/' ? 3 : -1;
+            if(Path[I] == '/')
+            {
+                ++I;
+                State = 3;
+            }
+            else
+            {
+                State = -1;
+            }
             break;
         case 3:
-            State = Path[I] == '.' ? 4 : -1;
+            if(Path[I] == '.')
+            {
+                ++I;
+                State = 4;
+            }
+            else
+            {
+                State = -1;
+            }
             break;
         case 4:
-            State = Path[I] == '.' ? 2 : -1;
+            if(Path[I] == '.')
+            {
+                ++I;
+                State = 2;
+            }
+            else
+            {
+                State = -1;
+            }
+            break;
         default:
             State = -1;
             break;
         }
     }
-    PathI = I;
-    for(I = BasePathLength - 1; I >= 0; --I)
+    if(State == -2)
     {
-        if(Offset <= 0)
+        return Path;
+    }
+    PathI = I;
+    I = BasePathLength - 1;
+    while(Offset > 0)
+    {
+        if(BasePath[I] == '/')
         {
-            break;
-        }
-        else if(BasePath[I] == '/')
-        {
+            ++I;
             --Offset;
         }
+        else
+        {
+            --I;
+        }
     }
-    char *Result = malloc(I + (PathLength - PathI));
+    u32 WholePathSize = I + (PathLength - PathI);
+    char *Result = malloc(WholePathSize + 1);
+    Result[WholePathSize] = 0;
     memcpy(Result, BasePath, I);
     memcpy(Result + I, Path + PathI, PathLength - PathI);
     return Result;
