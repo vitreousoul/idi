@@ -26,6 +26,11 @@
 #define CURRENT_TOKEN(Parser) (HAS_TOKENS(Parser) ? (Parser)->Tokens[(Parser)->I] : EmptyToken())
 #define HAS_TOKENS(Parser) ((Parser)->I < (Parser)->TokenCount)
 
+#define EMIT_BUFFER_SIZE 2048
+char EmitBuffer[EMIT_BUFFER_SIZE];
+
+#define EMIT(p, f, ...) ((p)->Emit ? printf(f __VA_OPT__(,) __VA_ARGS__) : 0)
+
 static void ParseError()
 {
     printf("[ ERROR ] ParseError\n");
@@ -40,7 +45,7 @@ static void NextToken(js_parser *Parser)
     }
     else
     {
-        printf("Out of tokens");
+        printf("Out of tokens\n");
         ParseError();
     }
 }
@@ -66,13 +71,13 @@ static void ExpectToken(js_parser *Parser, token_kind TokenKind)
 
 static void ParseImportStar(js_parser *Parser)
 {
-    printf("(* ");
+    EMIT(Parser, "(* ");
     ExpectToken(Parser, token_kind_Star);
     ExpectToken(Parser, token_kind_As);
     ExpectToken(Parser, token_kind_Identifier);
-    printf("<%lu %lu> ", PREVIOUS_TOKEN(Parser).String.Start, PREVIOUS_TOKEN(Parser).String.End);
+    EMIT(Parser, "<%lu %lu> ", PREVIOUS_TOKEN(Parser).String.Start, PREVIOUS_TOKEN(Parser).String.End);
     ExpectToken(Parser, token_kind_From);
-    printf(") ");
+    EMIT(Parser, ") ");
 }
 
 static void ParsePickName(js_parser *Parser)
@@ -82,7 +87,7 @@ static void ParsePickName(js_parser *Parser)
     case token_kind_Default:
     case token_kind_String:
     case token_kind_Identifier:
-        printf("<%lu %lu> ", CURRENT_TOKEN(Parser).String.Start, CURRENT_TOKEN(Parser).String.End);
+        EMIT(Parser, "<%lu %lu> ", CURRENT_TOKEN(Parser).String.Start, CURRENT_TOKEN(Parser).String.End);
         NextToken(Parser);
         break;
     default:
@@ -95,7 +100,7 @@ static void ParseAlias(js_parser *Parser)
 {
     if(CURRENT_TOKEN(Parser).Kind == token_kind_As)
     {
-        printf("as <%lu %lu> ", CURRENT_TOKEN(Parser).String.Start, CURRENT_TOKEN(Parser).String.End);
+        EMIT(Parser, "as <%lu %lu> ", CURRENT_TOKEN(Parser).String.Start, CURRENT_TOKEN(Parser).String.End);
         NextToken(Parser);
         ExpectToken(Parser, token_kind_Identifier);
     }
@@ -103,10 +108,10 @@ static void ParseAlias(js_parser *Parser)
 
 static void ParsePickItem(js_parser *Parser)
 {
-    printf("(");
+    EMIT(Parser, "(");
     ParsePickName(Parser);
     ParseAlias(Parser);
-    printf(")");
+    EMIT(Parser, ")");
 }
 
 static void ParsePickItems(js_parser *Parser)
@@ -129,7 +134,7 @@ static void ParsePickItems(js_parser *Parser)
 
 static void ParseImportPick(js_parser *Parser)
 {
-    printf("{");
+    EMIT(Parser, "{");
     ExpectToken(Parser, token_kind_CurlyOpen);
     switch(CURRENT_TOKEN(Parser).Kind)
     {
@@ -139,7 +144,7 @@ static void ParseImportPick(js_parser *Parser)
     default:
         ParsePickItems(Parser);
     }
-    printf("} ");
+    EMIT(Parser, "} ");
     ExpectToken(Parser, token_kind_From);
 }
 
@@ -161,7 +166,7 @@ static void ParseImportStarOrPick(js_parser *Parser)
 
 static void ParseImportDefault(js_parser *Parser)
 {
-    printf("<%lu %lu> ", CURRENT_TOKEN(Parser).String.Start, CURRENT_TOKEN(Parser).String.End);
+    EMIT(Parser, "<%lu %lu> ", CURRENT_TOKEN(Parser).String.Start, CURRENT_TOKEN(Parser).String.End);
     ExpectToken(Parser, token_kind_Identifier);
     switch(CURRENT_TOKEN(Parser).Kind)
     {
@@ -199,16 +204,16 @@ static void ParseImportBody(js_parser *Parser)
 
 static range ParseImport(js_parser *Parser)
 {
-    printf("(import ");
+    EMIT(Parser, "(import ");
     ExpectToken(Parser, token_kind_Import);
     if(CURRENT_TOKEN(Parser).Kind != token_kind_String)
     {
         ParseImportBody(Parser);
     }
-    printf("<%lu %lu> ", CURRENT_TOKEN(Parser).String.Start, CURRENT_TOKEN(Parser).String.End);
+    EMIT(Parser, "<%lu %lu> ", CURRENT_TOKEN(Parser).String.Start, CURRENT_TOKEN(Parser).String.End);
     range Result = {CURRENT_TOKEN(Parser).String.Start, CURRENT_TOKEN(Parser).String.End};
     ExpectToken(Parser, token_kind_String);
-    printf(") ");
+    EMIT(Parser, ") ");
     ExpectToken(Parser, token_kind_SemiColon);
     return Result;
 }
@@ -222,11 +227,10 @@ static range *ParseJs(js_parser *Parser)
         {
             range Range = ParseImport(Parser);
             vec_push(Result, Range);
-            printf("\n");
+            EMIT(Parser, "\n");
         }
         else
         {
-            printf("End of top imports\n");
             break;
         }
     }
@@ -248,15 +252,15 @@ void TestParseJs()
     file_info *FileInfo = FileTreeWalk("../test");
     s32 I;
     u32 K;
+    printf("digraph DepGraph {\n");
     for(I = 0; FileInfo[I].fpath != 0; ++I)
     {
         if(IsJsFile(FileInfo[I].fpath))
         {
-            printf("%s %lld\n", FileInfo[I].fpath, FileInfo[I].size);
             buffer *Source = ReadFileIntoBuffer(FileInfo[I].fpath);
             lexer Lexer = {*Source,0};
             token *Tokens = LexJs(&Lexer);
-            js_parser Parser = {vec_len(Tokens),0,Tokens};
+            js_parser Parser = {vec_len(Tokens),0,Tokens,0};
             range *Range = ParseJs(&Parser);
             for(K = 0; K < vec_len(Range); ++K)
             {
@@ -264,8 +268,9 @@ void TestParseJs()
                 Path[Range->End - Range->Start] = 0;
                 memcpy(Path, Source->Data + Range->Start, Range->End - Range->Start);
                 char *ResolvedPath = ResolvePath(FileInfo[I].fpath, Path);
-                printf("ResolvedPath %s\n", ResolvedPath);
+                printf("    \"%s\"->\"%s\"\n", FileInfo[I].fpath, ResolvedPath);
             }
         }
     }
+    printf("}\n");
 }
