@@ -268,7 +268,7 @@ void TestParseJs()
                 Path[Range->End - Range->Start] = 0;
                 memcpy(Path, Source->Data + Range->Start, Range->End - Range->Start);
                 char *ResolvedPath = ResolvePath(FileInfo[I].fpath, Path);
-                printf("    \"%s\"->\"%s\"\n", FileInfo[I].fpath, ResolvedPath);
+                printf("    \"%s\"->\"%s\";\n", FileInfo[I].fpath, ResolvedPath);
             }
         }
     }

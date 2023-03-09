@@ -170,7 +170,7 @@ char *ResolvePath(char *BasePath, char *Path)
     {
         if(BasePath[I] == '/')
         {
-            ++I;
+            --I;
             --Offset;
         }
         else
@@ -178,10 +178,11 @@ char *ResolvePath(char *BasePath, char *Path)
             --I;
         }
     }
+    I+=2;
     u32 WholePathSize = I + (PathLength - PathI);
     char *Result = malloc(WholePathSize + 1);
     Result[WholePathSize] = 0;
-    memcpy(Result, BasePath, I);
-    memcpy(Result + I, Path + PathI, PathLength - PathI);
+    memcpy(Result, BasePath, I); // NOTE: copy the base-path to the START of the result string
+    memcpy(Result + I, Path + PathI, PathLength - PathI); // NOTE: copy the tail-path to the END of the result string
     return Result;
 }
