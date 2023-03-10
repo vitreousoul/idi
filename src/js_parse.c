@@ -89,8 +89,17 @@ static void ParsePickName(js_parser *Parser)
         NextToken(Parser);
         break;
     default:
-        printf("ParsePickName error\n");
-        ParseError();
+        if(CURRENT_TOKEN(Parser).Kind == token_kind_From)
+        {
+            // NOTE: there are a few import keywords that aren't actually reserved words. We
+            // accept them here as a special case. There must be a better way
+            NextToken(Parser);
+        }
+        else
+        {
+            printf("ParsePickName error %d %d\n", Parser->I, CURRENT_TOKEN(Parser).Kind);
+            ParseError();
+        }
     }
 }
 
@@ -212,7 +221,10 @@ static range ParseImport(js_parser *Parser)
     range Result = {CURRENT_TOKEN(Parser).String.Start, CURRENT_TOKEN(Parser).String.End};
     ExpectToken(Parser, token_kind_String);
     if(Parser->Emit) printf( ") ");
-    ExpectToken(Parser, token_kind_SemiColon);
+    if(CURRENT_TOKEN(Parser).Kind == token_kind_SemiColon)
+    {
+        NextToken(Parser);
+    }
     return Result;
 }
 
@@ -257,15 +269,20 @@ void TestParseJs()
         if(IsJsFile(FileInfo[I].fpath))
         {
             buffer *Source = ReadFileIntoBuffer(FileInfo[I].fpath);
+            if(!Source)
+            {
+                continue;
+            }
             lexer Lexer = {*Source,0};
             token *Tokens = LexJs(&Lexer);
             js_parser Parser = {vec_len(Tokens),0,Tokens,0};
-            range *Range = ParseJs(&Parser);
-            for(K = 0; K < vec_len(Range); ++K)
+            range *Ranges = ParseJs(&Parser);
+            for(K = 0; K < vec_len(Ranges); ++K)
             {
-                char Path[1 + Range->End - Range->Start];
-                Path[Range->End - Range->Start] = 0;
-                memcpy(Path, Source->Data + Range->Start, Range->End - Range->Start);
+                range Range = Ranges[K];
+                char Path[1 + Range.End - Range.Start];
+                Path[Range.End - Range.Start] = 0;
+                memcpy(Path, Source->Data + Range.Start, Range.End - Range.Start);
                 char *ResolvedPath = ResolvePath(FileInfo[I].fpath, Path);
                 printf("    \"%s\"->\"%s\";\n", FileInfo[I].fpath, ResolvedPath);
             }
