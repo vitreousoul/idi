@@ -102,6 +102,10 @@ static void EatSpace(lexer *Lexer)
                     }
                 }
             }
+            else
+            {
+                goto end;
+            }
         } break;
         default:
             goto end;
@@ -159,6 +163,7 @@ static token ScanDigit(lexer *Lexer)
     token Result;
     Result.Kind = token_kind_Integer;
     Result.String.Start = Lexer->I;
+    b32 Exponential = 0;
     while(in_bounds(Lexer))
     {
         u8 Char = get_char(Lexer);
@@ -174,6 +179,20 @@ static token ScanDigit(lexer *Lexer)
                 Result.Kind = token_kind_Float;
                 ++Lexer->I;
             }
+        }
+        else if(Char == 'e')
+        {
+            if(Exponential)
+            {
+                Result.Kind = token_kind_None;
+                break;
+            }
+            else if(Peek(Lexer) == '-')
+            {
+                ++Lexer->I;
+            }
+            ++Lexer->I;
+            Exponential = 1;
         }
         else if(char_is_digit(Char))
         {
