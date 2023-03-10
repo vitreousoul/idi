@@ -14,6 +14,10 @@ size GetFileSize(FILE *File)
 buffer *ReadFileIntoBuffer(char *FilePath)
 {
     FILE *File = fopen(FilePath, "rb");
+    if(!File)
+    {
+        return 0;
+    }
     size FileSize = GetFileSize(File);
     buffer *Result = CreateBuffer(FileSize);
 
