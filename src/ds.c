@@ -66,8 +66,9 @@ static void HashTableSet(hash_table *HashTable, char *Key, u64 Value)
 
 static hash_table CreateHashTable(u32 Count)
 {
+    u32 I;
     hash_table HashTable;
-    hash_table_item Items[Count];
+    hash_table_item *Items = malloc(sizeof(hash_table_item)*Count);
     HashTable.Items = Items;
     HashTable.Capacity = Count;
     HashTable.Count = 0;

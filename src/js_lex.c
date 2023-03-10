@@ -19,9 +19,10 @@ static u8 Peek(lexer *Lexer)
     }
 }
 
+#define KEYWORD_TABLE_COUNT 1 << 10
 static hash_table InitKeywordTable()
 {
-    hash_table KeywordTable = CreateHashTable(1 << 10);
+    hash_table KeywordTable = CreateHashTable(KEYWORD_TABLE_COUNT);
     typedef struct { token_kind TokenKind; char* String; } KeywordKind;
     KeywordKind KeywordKinds[] = {
         {token_kind_Import, "import"},
