@@ -7,7 +7,7 @@
 #include "js_lex.c"
 #include "js_parse.c"
 
-#if BUILD_GUI
+#ifdef BUILD_GUI
 #include "gui.c"
 #endif
 
@@ -43,13 +43,14 @@ int main()
 #endif
 
 
-#if BUILD_GUI
-    DisplayWindow();
-#endif
-
     TestHashTable();
 
     TestParseJs();
+
+#ifdef BUILD_GUI
+    printf("displaying window");
+    DisplayWindow();
+#endif
 
     return Result;
 }

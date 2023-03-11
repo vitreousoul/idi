@@ -7,6 +7,7 @@ SETTINGS="-std=c89 -Wall -Wextra -Wstrict-prototypes -Wold-style-definition -Wmi
 GUI_LIBS=""
 
 if [ $GUI -eq 1 ]; then
+    GUI_DEFINES="-D BUILD_GUI"
     GUI_LIBS="`sdl2-config --cflags --libs`"
 fi
 
@@ -23,7 +24,8 @@ fi
 
 echo $TARGET
 echo $SETTINGS
+echo $GUI_DEFINES
 echo $GUI_LIBS
 echo $SOURCE_FILES
 
-gcc $TARGET $SETTINGS $GUI_LIBS $SOURCE_FILES
+gcc $TARGET $SETTINGS $GUI_DEFINES $GUI_LIBS $SOURCE_FILES

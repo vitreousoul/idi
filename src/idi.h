@@ -19,9 +19,7 @@
 
 // NOTE: BUILD_GUI is used to toggle the GUI build path. Currently the BUILD_GUI path is the
 // only path containing library code, which may be of interest when building this project.
-#define BUILD_GUI 0
-
-#if BUILD_GUI
+#ifdef BUILD_GUI
 // gui libs
 #include <SDL2/SDL.h>
 #define STB_TRUETYPE_IMPLEMENTATION
