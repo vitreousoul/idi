@@ -12,7 +12,8 @@
 #endif
 
 #define DEBUG_VEC_TEST 0
-#define DEBUG_JS_LEX_TEST 1
+#define DEBUG_JS_LEX_TEST 0
+#define DEBUG_JS_PARSE_TEST 0
 #define DEBUG_PARSE_JSON_TEST 0
 
 int main()
@@ -45,7 +46,9 @@ int main()
 
     TestHashTable();
 
+#if DEBUG_JS_PARSE_TEST
     TestParseJs();
+#endif
 
 #ifdef BUILD_GUI
     printf("displaying window");

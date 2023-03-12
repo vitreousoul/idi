@@ -240,27 +240,19 @@ void DisplayWindow()
     }
     InitGL();
     gui_state State = InitGuiState();
-    u32 TexX, TexY;
-#define TexWidth 20
-#define TexHeight 20
-    static GLubyte ImageData[TexHeight][TexWidth][4];
-    for(TexY = 0; TexY < TexHeight; ++TexY)
-    {
-        for(TexX = 0; TexX < TexWidth; ++TexX)
-        {
-            ImageData[TexY][TexX][0] = (TexY*4 + TexX*3) % 255;
-            ImageData[TexY][TexX][1] = 0;
-            ImageData[TexY][TexX][2] = 20;
-            ImageData[TexY][TexX][3] = 255;
-        }
-    }
+    s32 TexWidth, TexHeight, TexBitWidth;
+    u8 *ImageData = stbi_load("../assets/images/pigeon.png", &TexWidth, &TexHeight, &TexBitWidth, 0);
+    printf("%d %d %d\n", TexWidth, TexHeight, TexBitWidth);
     glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
     GLuint TextureHandle = 0;
     glGenTextures(1, &TextureHandle);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    glEnable(GL_ALPHA);
+    glEnable(GL_BLEND);
     /* glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, TexWidth, TexHeight, 0, GL_BGRA_EXT, GL_UNSIGNED_BYTE, ImageData); */
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, TexWidth, TexHeight, 0, GL_RGBA, GL_UNSIGNED_BYTE, ImageData);
     u32 DelayInMilliseconds = 16;
@@ -273,21 +265,21 @@ void DisplayWindow()
 
         if(1 || EventNeedsRenderUpdate)
         {
-            glClearColor(0.3, 0.1, 0.6, 1.0);
+            glClearColor(0.5, 0.6, 0.6, 1.0);
             glClear(GL_COLOR_BUFFER_BIT);
             glEnable(GL_TEXTURE_2D);
             glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE);
             glBegin(GL_TRIANGLES);
             glBindTexture(GL_TEXTURE_2D, TextureHandle);
+            f32 P = 0.14;
             // lower triangle
-            f32 P = 0.4;
-            glTexCoord2f(0.0f, 0.0f); glVertex2f(-P, -P);
-            glTexCoord2f(1.0f, 0.0f); glVertex2f(P, -P);
-            glTexCoord2f(1.0f, 1.0f); glVertex2f(P, P);
+            glTexCoord2f(0.0f, 0.0f); glVertex2f(-P, P);
+            glTexCoord2f(1.0f, 0.0f); glVertex2f(P, P);
+            glTexCoord2f(1.0f, 1.0f); glVertex2f(P, -P);
             // upper triangle
-            glTexCoord2f(0.0f, 0.0f); glVertex2f(-P, -P);
-            glTexCoord2f(1.0f, 1.0f); glVertex2f(P, P);
-            glTexCoord2f(0.0f, 1.0f); glVertex2f(-P, P);
+            glTexCoord2f(0.0f, 0.0f); glVertex2f(-P, P);
+            glTexCoord2f(1.0f, 1.0f); glVertex2f(P, -P);
+            glTexCoord2f(0.0f, 1.0f); glVertex2f(-P, -P);
             glEnd();
             glFlush();
             glDisable(GL_TEXTURE_2D);
@@ -295,5 +287,6 @@ void DisplayWindow()
         }
         SDL_Delay(DelayInMilliseconds); // TODO: figure out when to sleep, only when non-vsync?
     }
+    free(ImageData);
     DeInit(Window);
 }
