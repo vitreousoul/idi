@@ -1,14 +1,14 @@
 #!/usr/bin/env bash
 
 DEBUG=1
-GUI=0
+GUI=1
 SOURCE_FILES="src/idi.c"
 SETTINGS="-std=c89 -Wall -Wextra -Wstrict-prototypes -Wold-style-definition -Wmissing-prototypes -Wmissing-declarations -Wno-comment"
 GUI_LIBS=""
 
 if [ $GUI -eq 1 ]; then
     GUI_DEFINES="-D BUILD_GUI"
-    GUI_LIBS="`sdl2-config --cflags --libs`"
+    GUI_LIBS="`sdl2-config --cflags --libs` -framework OpenGL"
 fi
 
 if [ $DEBUG -eq 0 ]; then
