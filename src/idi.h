@@ -21,7 +21,8 @@
 // only path containing library code, which may be of interest when building this project.
 #ifdef BUILD_GUI
 // gui libs
-#include <SDL2/SDL.h>
+#include <SDL.h>
+#include <SDL_opengl.h>
 #define STB_TRUETYPE_IMPLEMENTATION
 #include "stb_truetype.h"
 // gui code

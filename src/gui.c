@@ -1,5 +1,5 @@
-#define SCREEN_WIDTH 880
-#define SCREEN_HEIGHT 400
+#define SCREEN_WIDTH 1080
+#define SCREEN_HEIGHT 720
 
 #define MAX_KEY_CODE_CACHE 1 << 12
 u32 KEY_CODE_CACHE[MAX_KEY_CODE_CACHE];
@@ -33,21 +33,43 @@ static result Init()
 {
     printf("Init\n");
     result Result = result_Ok;
-
     if(SDL_Init(SDL_INIT_VIDEO) < 0)
     {
         Result = result_Error;
         PrintError("SDL_Init error");
     }
-
     return Result;
 }
 
-static void DeInit(SDL_Window *Window, SDL_Renderer *Renderer)
+static b32 InitGL()
+{
+    b32 success = 1;
+    GLenum error = GL_NO_ERROR;
+    SDL_GL_SetAttribute( SDL_GL_CONTEXT_MAJOR_VERSION, 1);
+    SDL_GL_SetAttribute( SDL_GL_CONTEXT_MINOR_VERSION, 2);
+    glMatrixMode(GL_PROJECTION);
+    glLoadIdentity();
+    glMatrixMode(GL_MODELVIEW);
+    glLoadIdentity();
+    error = glGetError();
+    if( error != GL_NO_ERROR )
+    {
+        printf( "Error initializing OpenGL!\n");
+        success = 0;
+    }
+    error = glGetError();
+    if( error != GL_NO_ERROR )
+    {
+        printf( "Error initializing OpenGL!\n");
+        success = 0;
+    }
+    return success;
+}
+
+static void DeInit(SDL_Window *Window)
 {
     printf("DeInit\n");
     SDL_DestroyWindow(Window);
-    SDL_DestroyRenderer(Renderer);
     SDL_Quit();
 }
 
@@ -193,84 +215,54 @@ static b32 HandleEvents(gui_state *State)
     return EventNeedsRenderUpdate;
 }
 
-static void RenderTextLine(SDL_Renderer *Renderer, gui_state *State, char *Text, s32 Begin, s32 End)
-{
-    s32 OldCursorX = State->Cursor.X;
-    s32 OldCursorY = State->Cursor.Y;
-    s32 I;
-    SDL_Rect DestRect, TextureRect;
-    s32 CurrentX = State->Cursor.X;
-    for(I = Begin; I < End; ++I)
-    {
-        u8 Char = Text[I];
-        if(Char == '\n')
-        {
-            CurrentX = 0;
-            State->Cursor.Y += 24;
-        }
-        else
-        {
-            bounded_texture BoundedTexture = TEXTURE_CACHE[Char];
-            TextureRect.x = 0;
-            TextureRect.y = 0;
-            TextureRect.w = BoundedTexture.Rect.w;
-            TextureRect.h = BoundedTexture.Rect.h;
-            DestRect.x = BoundedTexture.Rect.x + CurrentX;
-            DestRect.y = State->Cursor.Y + BoundedTexture.Rect.y;
-            if(Char == ' ')
-            {
-                DestRect.w = 12;
-            }
-            else
-            {
-                DestRect.w = BoundedTexture.Rect.w;
-            }
-            DestRect.h = BoundedTexture.Rect.h;
-            SDL_RenderCopy(Renderer, BoundedTexture.Texture, &TextureRect, &DestRect);
-            CurrentX += DestRect.w;
-        }
-    }
-    SDL_SetRenderDrawColor(Renderer, 255, 10, 20, 100);
-    SDL_RenderDrawLine(Renderer, 0, State->Cursor.Y, SCREEN_WIDTH, State->Cursor.Y);
-    State->Cursor.X = OldCursorX;
-    State->Cursor.Y = OldCursorY;
-}
-
-/* static SDL_Color SDLColor(u8 R, u8 G, u8 B, u8 A) */
-/* { */
-/*     SDL_Color Result; */
-/*     Result.r = R; */
-/*     Result.g = G; */
-/*     Result.b = B; */
-/*     Result.a = A; */
-/*     return Result; */
-/* } */
 void DisplayWindow()
 {
     printf("DisplayWindow\n");
     result InitResult = Init();
-
     if(InitResult == result_Error)
     {
         PrintError("Init error");
         return;
     }
-
     SDL_Window *Window = SDL_CreateWindow("idi", 0, 0,
                                           SCREEN_WIDTH, SCREEN_HEIGHT,
-                                          SDL_WINDOW_HIDDEN);
+                                          SDL_WINDOW_OPENGL | SDL_WINDOW_SHOWN);
     assert(Window);
-    SDL_Renderer *Renderer = SDL_CreateRenderer(Window, -1, 0);
-    assert(Renderer);
+    SDL_GLContext GLContext = SDL_GL_CreateContext(Window);
+    if(GLContext == 0)
+    {
+        printf( "OpenGL context could not be created! SDL Error: %s\n", SDL_GetError() );
+        return;
+    }
+    if( SDL_GL_SetSwapInterval( 1 ) < 0 )
+    {
+        printf( "Warning: Unable to set VSync! SDL Error: %s\n", SDL_GetError() );
+    }
+    InitGL();
     gui_state State = InitGuiState();
-    InitTextureCache(Renderer);
-
-    SDL_Rect Rect;
-    Rect.x = 10;
-    Rect.y = 10;
-    Rect.w = 24;
-    Rect.h = 32;
-
+    u32 TexX, TexY;
+#define TexWidth 20
+#define TexHeight 20
+    static GLubyte ImageData[TexHeight][TexWidth][4];
+    for(TexY = 0; TexY < TexHeight; ++TexY)
+    {
+        for(TexX = 0; TexX < TexWidth; ++TexX)
+        {
+            ImageData[TexY][TexX][0] = (TexY*4 + TexX*3) % 255;
+            ImageData[TexY][TexX][1] = 0;
+            ImageData[TexY][TexX][2] = 20;
+            ImageData[TexY][TexX][3] = 255;
+        }
+    }
+    glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
+    GLuint TextureHandle = 0;
+    glGenTextures(1, &TextureHandle);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    /* glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, TexWidth, TexHeight, 0, GL_BGRA_EXT, GL_UNSIGNED_BYTE, ImageData); */
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, TexWidth, TexHeight, 0, GL_RGBA, GL_UNSIGNED_BYTE, ImageData);
     u32 DelayInMilliseconds = 16;
 
     SDL_ShowWindow(Window);
@@ -281,18 +273,27 @@ void DisplayWindow()
 
         if(1 || EventNeedsRenderUpdate)
         {
-            SDL_SetRenderDrawColor(Renderer, 0, 0, 0, 0);
-            SDL_RenderClear(Renderer);
-            /* SDL_RenderCopy(Renderer, Texture, 0, 0); */
-            RenderTextLine(Renderer, &State, "(foo\n (bar 42)\n (baz 24))", 0, 25);
-
-            /* Rect.w = TEXTURE_CACHE['y'].Width; */
-            /* Rect.h = TEXTURE_CACHE['y'].Height; */
-            /* SDL_RenderCopy(Renderer, TEXTURE_CACHE['y'].Texture, 0, &Rect); */
-            SDL_RenderPresent(Renderer);
+            glClearColor(0.3, 0.1, 0.6, 1.0);
+            glClear(GL_COLOR_BUFFER_BIT);
+            glEnable(GL_TEXTURE_2D);
+            glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE);
+            glBegin(GL_TRIANGLES);
+            glBindTexture(GL_TEXTURE_2D, TextureHandle);
+            // lower triangle
+            f32 P = 0.4;
+            glTexCoord2f(0.0f, 0.0f); glVertex2f(-P, -P);
+            glTexCoord2f(1.0f, 0.0f); glVertex2f(P, -P);
+            glTexCoord2f(1.0f, 1.0f); glVertex2f(P, P);
+            // upper triangle
+            glTexCoord2f(0.0f, 0.0f); glVertex2f(-P, -P);
+            glTexCoord2f(1.0f, 1.0f); glVertex2f(P, P);
+            glTexCoord2f(0.0f, 1.0f); glVertex2f(-P, P);
+            glEnd();
+            glFlush();
+            glDisable(GL_TEXTURE_2D);
+            SDL_GL_SwapWindow(Window);
         }
-        SDL_Delay(DelayInMilliseconds);
+        SDL_Delay(DelayInMilliseconds); // TODO: figure out when to sleep, only when non-vsync?
     }
-
-    DeInit(Window, Renderer);
+    DeInit(Window);
 }
