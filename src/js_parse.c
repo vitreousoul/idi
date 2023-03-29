@@ -22,6 +22,17 @@
 // PickAlias = /as/ Identifier
 //
 
+//
+// Function = Arrow | Func
+// Arrow = FunctionParams /=>/ FunctionArrowBody
+// Func = /function/ FunctionParams FunctionBlock
+// FunctionBody = FunctionBlock | Expr
+// FunctionBlock = /{/ Statement* /}/
+// FunctionParams = /(/ FunctionParam* /)/
+// FunctionParam = Identifier FunctionRest* /,/?
+// FunctionRest = /,/ Identifier
+//
+
 #define PREVIOUS_TOKEN(Parser) ((Parser)->Tokens[(Parser)->I-1])
 #define CURRENT_TOKEN(Parser) (HAS_TOKENS(Parser) ? (Parser)->Tokens[(Parser)->I] : EmptyToken())
 #define HAS_TOKENS(Parser) ((Parser)->I < (Parser)->TokenCount)
