@@ -28,6 +28,8 @@ static hash_table InitKeywordTable()
         {token_kind_Import, "import"},
         {token_kind_Export, "export"},
         {token_kind_From, "from"},
+        {token_kind_Var, "var"},
+        {token_kind_Let, "let"},
         {token_kind_Const, "const"},
         {token_kind_Function, "function"},
         {token_kind_Return, "return"},

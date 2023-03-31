@@ -33,11 +33,13 @@ typedef enum token_kind
     token_kind_Import = 136,
     token_kind_Export = 137,
     token_kind_From = 138,
-    token_kind_Const = 139,
-    token_kind_Function = 140,
-    token_kind_Return = 141,
-    token_kind_As = 142,
-    token_kind_Default = 143,
+    token_kind_Var = 139,
+    token_kind_Let = 140,
+    token_kind_Const = 141,
+    token_kind_Function = 142,
+    token_kind_Return = 143,
+    token_kind_As = 144,
+    token_kind_Default = 145,
 } token_kind;
 
 typedef enum
