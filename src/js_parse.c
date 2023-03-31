@@ -1,7 +1,7 @@
 // ==========
 //   Grammar
 // ==========
-//
+
 // Import = /import/ Body? Path /;/
 // Path = String
 // Body = Default | Star | Pick
@@ -20,9 +20,7 @@
 // PickItem = PickName PickAlias?
 // PickName = /default/ | String | Identifier
 // PickAlias = /as/ Identifier
-//
 
-//
 // Function = Arrow | Func
 // Arrow = FunctionParams /=>/ FunctionArrowBody
 // Func = /function/ FunctionParams FunctionBlock
@@ -31,7 +29,16 @@
 // FunctionParams = /(/ FunctionParam* /)/
 // FunctionParam = Identifier FunctionRest* /,/?
 // FunctionRest = /,/ Identifier
-//
+
+// Assignment = AssignmentVar | AssignmentLet | AssignmentConst
+// AssignmentVar = /var/ AssignmentBody /;/
+// AssignmentLet = /let/ AssignmentBody /;/
+// AssignmentConst = /const/ AssignmentBody /;/
+// AssignmentBody = Identifier /=/ Expr
+
+// Expr = Expr /+/ Term | Expr /-/ Term | Term
+// Term = Term /*/ Factor | Term /// Factor | Factor
+// Factor = Digit | /(/ Expr /)/
 
 #define PREVIOUS_TOKEN(Parser) ((Parser)->Tokens[(Parser)->I-1])
 #define CURRENT_TOKEN(Parser) (HAS_TOKENS(Parser) ? (Parser)->Tokens[(Parser)->I] : EmptyToken())
@@ -242,17 +249,19 @@ static range ParseImport(js_parser *Parser)
 static range *ParseJs(js_parser *Parser)
 {
     range *Result = 0;
-    for(;;)
+    b32 Running = 1;
+    range Range;
+    while(Running)
     {
-        if(CURRENT_TOKEN(Parser).Kind == token_kind_Import)
+        switch(CURRENT_TOKEN(Parser).Kind)
         {
-            range Range = ParseImport(Parser);
+        case token_kind_Import:
+            Range = ParseImport(Parser);
             vec_push(Result, Range);
             if(Parser->Emit) printf( "\n");
-        }
-        else
-        {
             break;
+        default:
+            Running = 0;
         }
     }
     return Result;
