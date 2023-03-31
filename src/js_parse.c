@@ -36,9 +36,13 @@
 // AssignmentConst = /const/ AssignmentBody /;/
 // AssignmentBody = Identifier /=/ Expr
 
-// Expr = Expr /+/ Term | Expr /-/ Term | Term
+// Expr = ExprParen | ExprValue
+// ExprParen = /(/ Expr /)/
+// ExprValue = ArithmeticExpr | Function | FunctionCall
+
+// ArithmeticExpr = ArithmeticExpr /+/ Term | ArithmeticExpr /-/ Term | Term
 // Term = Term /*/ Factor | Term /// Factor | Factor
-// Factor = Digit | /(/ Expr /)/
+// Factor = Digit | /(/ ArithmeticExpr /)/
 
 #define PREVIOUS_TOKEN(Parser) ((Parser)->Tokens[(Parser)->I-1])
 #define CURRENT_TOKEN(Parser) (HAS_TOKENS(Parser) ? (Parser)->Tokens[(Parser)->I] : EmptyToken())
@@ -243,6 +247,13 @@ static range ParseImport(js_parser *Parser)
     {
         NextToken(Parser);
     }
+    return Result;
+}
+
+static range ParseExpr(js_parser *Parser)
+{
+    range Result = {0, 0};
+    // TODO: parse expr
     return Result;
 }
 
