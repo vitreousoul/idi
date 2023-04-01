@@ -42,28 +42,30 @@ typedef enum token_kind
     token_kind_Default = 145,
 } token_kind;
 
+typedef struct
+{
+    token_kind TokenKind;
+    char* String;
+} KeywordKind;
+
 typedef enum
 {
     identifier_kind_Unresolved,
     identifier_kind_Keyword,
 } identifier_kind;
 
-typedef struct
-{
-    size Start;
-    size End;
-} range;
+/* typedef struct */
+/* { */
+/*     size Start; */
+/*     size End; */
+/* } range; */
 
 typedef struct token
 {
     token_kind Kind;
     union
     {
-        struct
-        {
-            size Start;
-            size End;
-        } String;
+        char *String;
         identifier_kind IdentifierKind;
     };
 } token;
@@ -73,6 +75,13 @@ typedef struct lexer
     buffer Source;
     size I;
 } lexer;
+
+typedef struct
+{
+    u32 Capacity;
+    u32 At;
+    char *Data;
+} string_buffer;
 
 u32 TestJsLex(void);
 token *LexJs(lexer *Lexer);

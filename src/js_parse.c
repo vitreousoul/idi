@@ -84,7 +84,7 @@ static void ExpectToken(js_parser *Parser, token_kind TokenKind)
     }
     else
     {
-        printf("Expected token %d but got %d %lu %lu\n", TokenKind, CurrentTokenKind, CURRENT_TOKEN(Parser).String.Start, CURRENT_TOKEN(Parser).String.End);
+        printf("Expected token %d but got %d %s\n", TokenKind, CurrentTokenKind, CURRENT_TOKEN(Parser).String);
         ParseError();
     }
 }
@@ -95,7 +95,7 @@ static void ParseImportStar(js_parser *Parser)
     ExpectToken(Parser, token_kind_Star);
     ExpectToken(Parser, token_kind_As);
     ExpectToken(Parser, token_kind_Identifier);
-    if(Parser->Emit) printf( "<%lu %lu> ", PREVIOUS_TOKEN(Parser).String.Start, PREVIOUS_TOKEN(Parser).String.End);
+    if(Parser->Emit) printf( "<%s> ", PREVIOUS_TOKEN(Parser).String);
     ExpectToken(Parser, token_kind_From);
     if(Parser->Emit) printf( ") ");
 }
@@ -107,7 +107,7 @@ static void ParsePickName(js_parser *Parser)
     case token_kind_Default:
     case token_kind_String:
     case token_kind_Identifier:
-        if(Parser->Emit) printf( "<%lu %lu> ", CURRENT_TOKEN(Parser).String.Start, CURRENT_TOKEN(Parser).String.End);
+        if(Parser->Emit) printf( "<%s> ", CURRENT_TOKEN(Parser).String);
         NextToken(Parser);
         break;
     default:
@@ -129,7 +129,7 @@ static void ParseAlias(js_parser *Parser)
 {
     if(CURRENT_TOKEN(Parser).Kind == token_kind_As)
     {
-        if(Parser->Emit) printf( "as <%lu %lu> ", CURRENT_TOKEN(Parser).String.Start, CURRENT_TOKEN(Parser).String.End);
+        if(Parser->Emit) printf( "as <%s> ", CURRENT_TOKEN(Parser).String);
         NextToken(Parser);
         ExpectToken(Parser, token_kind_Identifier);
     }
@@ -195,7 +195,7 @@ static void ParseImportStarOrPick(js_parser *Parser)
 
 static void ParseImportDefault(js_parser *Parser)
 {
-    if(Parser->Emit) printf( "<%lu %lu> ", CURRENT_TOKEN(Parser).String.Start, CURRENT_TOKEN(Parser).String.End);
+    if(Parser->Emit) printf( "<%s> ", CURRENT_TOKEN(Parser).String);
     ExpectToken(Parser, token_kind_Identifier);
     switch(CURRENT_TOKEN(Parser).Kind)
     {
@@ -231,7 +231,7 @@ static void ParseImportBody(js_parser *Parser)
     }
 }
 
-static range ParseImport(js_parser *Parser)
+static void ParseImport(js_parser *Parser)
 {
     if(Parser->Emit) printf( "(import ");
     ExpectToken(Parser, token_kind_Import);
@@ -239,26 +239,23 @@ static range ParseImport(js_parser *Parser)
     {
         ParseImportBody(Parser);
     }
-    if(Parser->Emit) printf( "<%lu %lu> ", CURRENT_TOKEN(Parser).String.Start, CURRENT_TOKEN(Parser).String.End);
-    range Result = {CURRENT_TOKEN(Parser).String.Start, CURRENT_TOKEN(Parser).String.End};
+    if(Parser->Emit) printf( "<%s> ", CURRENT_TOKEN(Parser).String);
     ExpectToken(Parser, token_kind_String);
     if(Parser->Emit) printf( ") ");
     if(CURRENT_TOKEN(Parser).Kind == token_kind_SemiColon)
     {
         NextToken(Parser);
     }
-    return Result;
 }
 
-static range ParseExprParen(js_parser *Parser)
+static void ParseExprParen(js_parser *Parser)
 {
-    range Result = {0, 0};
-    return Result;
+    printf("ParseExprParen not implemented\n");
+    ParseError();
 }
 
-static range ParseExpr(js_parser *Parser)
+static void ParseExpr(js_parser *Parser)
 {
-    range Result = {0, 0};
     switch(CURRENT_TOKEN(Parser).Kind)
     {
     case token_kind_ParenOpen:
@@ -272,28 +269,25 @@ static range ParseExpr(js_parser *Parser)
     // Expr = ExprParen | ExprValue
     // ExprParen = /(/ Expr /)/
     // ExprValue = ArithmeticExpr | Function | FunctionCall
-    return Result;
 }
 
-static range *ParseJs(js_parser *Parser)
+static void ParseJs(js_parser *Parser)
 {
-    range *Result = 0;
     b32 Running = 1;
-    range Range;
+    token Range;
     while(Running)
     {
         switch(CURRENT_TOKEN(Parser).Kind)
         {
         case token_kind_Import:
-            Range = ParseImport(Parser);
-            vec_push(Result, Range);
+            ParseImport(Parser);
+            /* vec_push(Result, Range); */
             if(Parser->Emit) printf( "\n");
             break;
         default:
             Running = 0;
         }
     }
-    return Result;
 }
 
 static b32 IsJsFile(char *FilePath)
@@ -325,16 +319,19 @@ void TestParseJs()
             lexer Lexer = {*Source,0};
             token *Tokens = LexJs(&Lexer);
             js_parser Parser = {vec_len(Tokens),0,Tokens,0};
-            range *Ranges = ParseJs(&Parser);
+            ParseJs(&Parser);
+#if 0
+            // TODO: use this loop again once ParseJs returns something iterable
             for(K = 0; K < vec_len(Ranges); ++K)
             {
-                range Range = Ranges[K];
+                char * Range = Ranges[K];
                 char Path[1 + Range.End - Range.Start];
                 Path[Range.End - Range.Start] = 0;
                 memcpy(Path, Source->Data + Range.Start, Range.End - Range.Start);
                 char *ResolvedPath = ResolvePath(FileInfo[I].fpath, Path);
                 printf("    \"%s\"->\"%s\";\n", FileInfo[I].fpath, ResolvedPath);
             }
+#endif
         }
     }
     printf("}\n");
