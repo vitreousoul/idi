@@ -250,10 +250,28 @@ static range ParseImport(js_parser *Parser)
     return Result;
 }
 
+static range ParseExprParen(js_parser *Parser)
+{
+    range Result = {0, 0};
+    return Result;
+}
+
 static range ParseExpr(js_parser *Parser)
 {
     range Result = {0, 0};
+    switch(CURRENT_TOKEN(Parser).Kind)
+    {
+    case token_kind_ParenOpen:
+        NextToken(Parser);
+        break;
+    default:
+        printf("ParseExpr unexpected token %d\n", CURRENT_TOKEN(Parser).Kind);
+        ParseError();
+    }
     // TODO: parse expr
+    // Expr = ExprParen | ExprValue
+    // ExprParen = /(/ Expr /)/
+    // ExprValue = ArithmeticExpr | Function | FunctionCall
     return Result;
 }
 
