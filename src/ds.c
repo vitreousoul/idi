@@ -18,7 +18,7 @@ static u64 StringHash(char *String)
 {
     u64 Result = 5381;
     u8 Char;
-    while((Char = *String++))
+    while(String && (Char = *String++))
     {
         Result ^= Char * Result;
     }

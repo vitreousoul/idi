@@ -250,7 +250,7 @@ static void ParseImport(js_parser *Parser)
 
 static void ParseExprParen(js_parser *Parser)
 {
-    printf("ParseExprParen not implemented\n");
+    printf("ParseExprParen not implemented %d\n", Parser->I);
     ParseError();
 }
 
@@ -260,6 +260,7 @@ static void ParseExpr(js_parser *Parser)
     {
     case token_kind_ParenOpen:
         NextToken(Parser);
+        ParseExprParen(Parser);
         break;
     default:
         printf("ParseExpr unexpected token %d\n", CURRENT_TOKEN(Parser).Kind);
@@ -274,7 +275,6 @@ static void ParseExpr(js_parser *Parser)
 static void ParseJs(js_parser *Parser)
 {
     b32 Running = 1;
-    token Range;
     while(Running)
     {
         switch(CURRENT_TOKEN(Parser).Kind)
@@ -284,8 +284,11 @@ static void ParseJs(js_parser *Parser)
             /* vec_push(Result, Range); */
             if(Parser->Emit) printf( "\n");
             break;
-        default:
+        case token_kind_None:
             Running = 0;
+            break;
+        default:
+            ParseExpr(Parser);
         }
     }
 }
@@ -304,7 +307,6 @@ void TestParseJs()
 {
     file_info *FileInfo = FileTreeWalk("../test");
     s32 I;
-    u32 K;
     printf("digraph DepGraph {\n");
     printf("    rankdir=\"BT\";\n");
     for(I = 0; FileInfo[I].fpath != 0; ++I)
@@ -322,6 +324,7 @@ void TestParseJs()
             ParseJs(&Parser);
 #if 0
             // TODO: use this loop again once ParseJs returns something iterable
+            u32 K;
             for(K = 0; K < vec_len(Ranges); ++K)
             {
                 char * Range = Ranges[K];
