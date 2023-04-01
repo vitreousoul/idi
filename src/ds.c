@@ -30,7 +30,7 @@ static u64 HashTableGetIndex(hash_table *HashTable, char *Key)
     u64 Result = StringHash(Key);
     for(;;)
     {
-        Result &= HashTable->Capacity - 1;
+        Result &= HashTable->Capacity - 1; // clamp result
         if(!HashTable->Items[Result].Key)
         {
             break;
