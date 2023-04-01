@@ -328,7 +328,6 @@ static token ParseToken(lexer *Lexer, hash_table IdentifierTable)
             Running = 0;
             break;
         }
-        printf("ParseToken %d\n", Token.Kind);
     }
     return Token;
 }
@@ -345,7 +344,6 @@ token *LexJs(lexer *Lexer)
         {
             if(Token.Kind == token_kind_Identifier)
             {
-                printf("hash-table get\n");
                 identifier_kind KeywordKind = HashTableGet(&IdentifierTable, Token.String);
                 if (KeywordKind == identifier_kind_Keyword) ++ReservedKeywordCount;
             }
