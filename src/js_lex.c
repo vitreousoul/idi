@@ -235,7 +235,6 @@ static token ScanEquals(lexer *Lexer)
 
 static token ScanIdentifier(lexer *Lexer, hash_table IdentifierTable)
 {
-    printf("ScanIdentifier\n");
     token Result;
     token_kind KeywordKind;
     u32 StringLength, Start = 0, End = 0;
