@@ -54,7 +54,7 @@ static char *StringFromRange(lexer *Lexer, u32 Start, u32 End)
     u32 StringLength = 1 + End - Start;
     char *Result = malloc(sizeof(char) * StringLength); // TODO: use string buffer here instead
     memcpy(Result, &Lexer->Source.Data[Lexer->I], StringLength);
-    Result[StringLength - 1] = 0; // null terminate
+    Result[StringLength] = 0; // null terminate
     return Result;
 }
 
@@ -244,11 +244,11 @@ static token ScanIdentifier(lexer *Lexer, hash_table IdentifierTable)
     {
         ++Lexer->I;
     }
-    End = (Lexer->I);
-    StringLength = 1 + End - Start;
-    char String[StringLength]; // TODO: get this string off the stack
-    memcpy(String, &Lexer->Source.Data[Lexer->I], StringLength);
-    String[StringLength - 1] = 0; // null terminate
+    End = Lexer->I;
+    StringLength = End - Start;
+    char *String = malloc(sizeof(char) * StringLength + 1);
+    memcpy(String, &Lexer->Source.Data[Start], StringLength);
+    String[StringLength + 1] = 0; // null terminate
     if((KeywordKind = HashTableGet(&IdentifierTable, String)))
     {
         Result.Kind = KeywordKind;

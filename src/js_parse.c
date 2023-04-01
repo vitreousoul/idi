@@ -277,11 +277,11 @@ static void ParseJs(js_parser *Parser)
     b32 Running = 1;
     while(Running)
     {
+        printf("%d\n", CURRENT_TOKEN(Parser).Kind);
         switch(CURRENT_TOKEN(Parser).Kind)
         {
         case token_kind_Import:
             ParseImport(Parser);
-            /* vec_push(Result, Range); */
             if(Parser->Emit) printf( "\n");
             break;
         case token_kind_None:
@@ -307,12 +307,13 @@ void TestParseJs()
 {
     file_info *FileInfo = FileTreeWalk("../test");
     s32 I;
-    printf("digraph DepGraph {\n");
-    printf("    rankdir=\"BT\";\n");
+    /* printf("digraph DepGraph {\n"); */
+    /* printf("    rankdir=\"BT\";\n"); */
     for(I = 0; FileInfo[I].fpath != 0; ++I)
     {
         if(IsJsFile(FileInfo[I].fpath))
         {
+            printf("Parsing %s\n", FileInfo[I].fpath);
             buffer *Source = ReadFileIntoBuffer(FileInfo[I].fpath);
             if(!Source)
             {
